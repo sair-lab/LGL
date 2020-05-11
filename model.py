@@ -31,20 +31,17 @@ from layer import FeatBrd1d
 
 
 class FGN(nn.Module):
-    def __init__(self, adjacency):
+    def __init__(self, adjacency, hidden=2, num_class=7):
         super(FGN, self).__init__()
 
-        self.feat1 = FeatBrd1d(in_channels=1, out_channels=2)
-        self.batch1 = nn.BatchNorm1d(2)
-
-        self.feat2 = FeatBrd1d(in_channels=2, out_channels=2, adjacency=adjacency)
-        self.batch2 = nn.BatchNorm1d(2)
-
+        self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden)
+        self.batch1 = nn.BatchNorm1d(hidden)
         self.acvt = nn.Softsign()
-
+        self.feat2 = FeatBrd1d(in_channels=hidden, out_channels=hidden, adjacency=adjacency)
+        self.batch2 = nn.BatchNorm1d(hidden)
         self.classifier = nn.Sequential(
-            nn.Softsign(),
-            nn.Conv1d(in_channels=2, out_channels=7, kernel_size=adjacency.size(0), groups=1),
+            nn.Flatten(),
+            nn.Linear(adjacency.size(0)*hidden, num_class)
         )
 
     def forward(self, x, adj=None):
@@ -53,13 +50,8 @@ class FGN(nn.Module):
         x = self.acvt(x)
         x = self.feat2(x)
         x = self.batch2(x)
-        x = self.classifier(x)
-        return x.squeeze()
-
-    def cuda(self, device=None):
-        self.feat1 = self.feat1.cuda(device)
-        self.feat2 = self.feat2.cuda(device)
-        return self._apply(lambda t: t.cuda(device))
+        x = self.acvt(x)
+        return self.classifier(x)
 
 
 if __name__ == "__main__":

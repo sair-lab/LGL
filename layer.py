@@ -44,7 +44,7 @@ class FeatBrd1d(nn.Module):
     '''
     def __init__(self, in_channels, out_channels, adjacency=None):
         super(FeatBrd1d, self).__init__()
-        self.adjacency = adjacency
+        self.register_buffer('adjacency', adjacency)
         # Taking advantage of parallel efficiency of nn.Conv1d
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=1)
 
@@ -53,8 +53,3 @@ class FeatBrd1d(nn.Module):
             return (adj.unsqueeze(1) @ (self.conv(x).unsqueeze(-1))).view(x.size(0),-1,x.size(-1))
         else:
             return (self.adjacency @ (self.conv(x).unsqueeze(-1))).view(x.size(0),-1,x.size(-1))
-
-    def cuda(self, device=None):
-        if self.adjacency is not None:
-            self.adjacency = self.adjacency.cuda(device)
-        return self._apply(lambda t: t.cuda(device))

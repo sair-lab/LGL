@@ -38,7 +38,6 @@ from dataset import Citation
 import torch.utils.data as Data
 from torch.autograd import Variable
 
-from sampler import PlainSampler
 from scheduler import EarlyStopScheduler
 
 def train(loader, net, criterion, optimizer):
@@ -75,7 +74,6 @@ def performance(loader, net, criterion):
             total += targets.size(0)
             correct += predicted.eq(targets.data).cpu().sum().item()
         acc = 100.*correct/total
-
     return (test_loss/(batch_idx+1),acc)
 
 
@@ -90,21 +88,19 @@ if __name__ == '__main__':
     parser.add_argument("--dataset", type=str, default='cora', help="dataset name")
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate, use 0.01 for citeseer")
     parser.add_argument("--min-lr", type=float, default=0.01, help="learning rate, use 0.01 for citeseer")
-    parser.add_argument("--batch-size", type=int, default=10, help="number of minibatch size")
-    parser.add_argument("--milestones", type=int, default=200, help="milestones for applying multiplier")
+    parser.add_argument("--batch-size", type=int, default=50, help="number of minibatch size")
     parser.add_argument("--epochs", type=int, default=250, help="number of training epochs")
-    parser.add_argument("--patience", type=int, default=15, help="number of epochs for early stop training")
+    parser.add_argument("--patience", type=int, default=20, help="number of epochs for early stop training")
     parser.add_argument("--momentum", type=float, default=0, help="momentum of the optimizer")
     parser.add_argument("--factor", type=float, default=0.1, help="learning rate multiplier")
-    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
+    parser.add_argument('--seed', type=int, default=1, help='Random seed.')
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
     # Datasets
     train_data = Citation(root=args.data_root,  name=args.dataset, data_type='train', download=True)
     val_data = Citation(root=args.data_root, name=args.dataset, data_type='val', download=True)
-    batch_sampler = PlainSampler(train_data, batch_size=args.batch_size, shuffle=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_sampler=batch_sampler, num_workers=0)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, num_workers=0)
     val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False)
 
     # Models
@@ -124,7 +120,7 @@ if __name__ == '__main__':
         val_loss, val_acc = performance(val_loader, net, criterion) # validate
         print("epoch: %d, train_loss: %.4f, train_acc: %.2f, val_loss: %.4f, val_acc: %.2f" 
                 % (epoch, train_loss, train_acc, val_loss, val_acc))
-        
+
         if val_acc > best_acc:
             print("New best Model, saving...")
             best_acc, best_net = val_acc, copy.deepcopy(net)
