@@ -1,4 +1,4 @@
-# Copyright <2019> <Chen Wang <https://chenwang.site>, Carnegie Mellon University>
+# Copyright <2020> <Chen Wang <https://chenwang.site>, Carnegie Mellon University>
 
 # Redistribution and use in source and binary forms, with or without modification, are 
 # permitted provided that the following conditions are met:
@@ -75,21 +75,28 @@ class Citation(VisionDataset):
 
     def __getitem__(self, index):
         neighbor = self.features[self.dst[self.src==self.ids[self.mask][index]]]
-        return self.features[self.mask][index], self.labels[self.mask][index], neighbor
+        return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbor.unsqueeze(-2)
 
     def download(self):
         """Download data if it doesn't exist in processed_folder already."""
         print('Loading {} Dataset...'.format(self.name))
-        makedir_exist_ok(os.path.join(self.root, self.name))
-        os.environ["DGL_DOWNLOAD_DIR"] = os.path.join(self.root, self.name)
-        if self.name.lower() == 'cora':
-            self.data = citegrh.load_cora()
-        elif self.name.lower() == 'citeseer':
-            self.data = citegrh.load_citeseer()
-        elif self.name.lower() == 'pubmed':
-            self.data = citegrh.load_pubmed()
+        processed_folder = os.path.join(self.root, self.name)
+        makedir_exist_ok(processed_folder)
+        os.environ["DGL_DOWNLOAD_DIR"] = processed_folder
+        data_file = os.path.join(processed_folder, 'data.pt')
+        if os.path.exists(data_file):
+            self.data = torch.load(data_file)
         else:
-            raise RuntimeError('Citation dataset name {} wrong'.format(self.name))
+            if self.name.lower() == 'cora':
+                self.data = citegrh.load_cora()
+            elif self.name.lower() == 'citeseer':
+                self.data = citegrh.load_citeseer()
+            elif self.name.lower() == 'pubmed':
+                self.data = citegrh.load_pubmed()
+            else:
+                raise RuntimeError('Citation dataset name {} wrong'.format(self.name))
+            with open(data_file, 'wb') as f:
+                torch.save(self.data, data_file)
 
 
 if __name__ == "__main__":
