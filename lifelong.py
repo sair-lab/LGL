@@ -33,8 +33,8 @@ import argparse
 import numpy as np
 import torch.nn as nn
 from models import Net
-from datasets import Citation
 import torch.utils.data as Data
+from datasets import Citation, citation_collate
 
 
 def performance(loader, net):
@@ -42,7 +42,7 @@ def performance(loader, net):
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(loader):
             if torch.cuda.is_available():
-                inputs, targets, neighbor = inputs.cuda(), targets.cuda(), neighbor.cuda()
+                inputs, targets, neighbor = inputs.cuda(), targets.cuda(), [item.cuda() for item in neighbor]
             outputs = net(inputs, neighbor)
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
@@ -61,8 +61,9 @@ if __name__ == '__main__':
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
     parser.add_argument("--dataset", type=str, default='cora', help="dataset name")
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
-    parser.add_argument("--batch-size", type=int, default=1, help="number of minibatch size")
+    parser.add_argument("--batch-size", type=int, default=10, help="number of minibatch size")
     parser.add_argument("--iteration", type=int, default=3, help="number of training iteration")
+    parser.add_argument("--memory-size", type=int, default=100, help="number of training iteration")
     parser.add_argument("--momentum", type=float, default=0, help="momentum of the optimizer")
     parser.add_argument("--gamma", type=float, default=0.1, help="learning rate multiplier, use 0.01 for citeseer")
     parser.add_argument('--seed', type=int, default=0, help='Random seed.')
@@ -70,14 +71,14 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
 
     train_data = Citation(root=args.data_root,  name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
     val_data = Citation(root=args.data_root, name=args.dataset, data_type='val', download=True)
-    val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False)
+    val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
     net = Net(args).cuda() if torch.cuda.is_available() else Net(args)
     for batch_idx, (inputs, targets, neighbor) in enumerate(train_loader):
         if torch.cuda.is_available():
-            inputs, targets, neighbor = inputs.cuda(), targets.cuda(), neighbor.cuda()
+            inputs, targets, neighbor = inputs.cuda(), targets.cuda(), [item.cuda() for item in neighbor]
         net.observe(inputs, targets, neighbor)
         if batch_idx % 10 == 0:
             val_acc = performance(val_loader, net)
@@ -85,7 +86,7 @@ if __name__ == '__main__':
 
     # train_loss, train_acc = train(train_loader, net, criterion, optimizer)
     test_data = Citation(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
     test_acc = performance(test_loader, net)
     print('test_acc: %.2f'%(test_acc))
     print('number of parameters:', count_parameters(net))

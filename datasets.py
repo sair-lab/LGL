@@ -99,6 +99,13 @@ class Citation(VisionDataset):
                 torch.save(self.data, data_file)
 
 
+def citation_collate(batch):
+    feature = torch.stack([item[0] for item in batch],dim=0)
+    labels = torch.stack([item[1] for item in batch],dim=0)
+    neighbor = [item[2] for item in batch]
+    return [feature, labels, neighbor]
+
+
 if __name__ == "__main__":
     '''
     Use example for Citation Dataset 

@@ -41,16 +41,20 @@ class Net(nn.Module):
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
         self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(feat_len*hidden, num_class))
 
+        self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))
+        self.register_buffer('inputs', torch.Tensor(0, 1, feat_len))
+        self.register_buffer('targets', torch.LongTensor(0))
+        self.neighbor = []
+
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.parameters(), lr=args.lr, momentum=args.momentum)
-        self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))
 
     def forward(self, x, neighbor):
         fadj = self.feature_adjacency(x, neighbor)
-        self.adj += fadj.sum(0)
+        adj = self.row_normalize(self.adj.sqrt()) + torch.eye(x.size(-1),device=x.device)
         x = self.feat1(x, fadj)
         x = self.acvt1(x)
-        x = self.feat2(x, self.adj)
+        x = self.feat2(x, fadj)
         x = self.acvt2(x)
         return self.classifier(x)
 
@@ -62,9 +66,21 @@ class Net(nn.Module):
             loss.backward()
             self.optimizer.step()
 
+        self.sample(inputs, targets, neighbor)
+        L = torch.randperm(self.inputs.size(0))
+        minibatches = [L[n:n+self.args.batch_size] for n in range(0, len(L), self.args.batch_size)]
+        for index in minibatches:
+            self.optimizer.zero_grad()
+            inputs, targets, neighbor = self.inputs[index], self.targets[index], [self.neighbor[i] for i in index.tolist()]
+            outputs = self.forward(inputs, neighbor)
+            loss = self.criterion(outputs, targets)
+            loss.backward()
+            self.optimizer.step()
+
     def feature_adjacency(self, x, y):
-        adj = (x.unsqueeze(-1) * y.unsqueeze(-2)).sum(dim=1).squeeze(dim=1)
+        adj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
         adj += adj.transpose(-1, -2)
+        self.adj += (adj/torch.cuda.LongTensor([yi.size(0) for yi in y]).view(-1,1,1)).sum(0)
         return self.row_normalize(adj.sqrt()) + torch.eye(x.size(-1), device=x.device)
 
     def row_normalize(self, x):
@@ -72,6 +88,18 @@ class Net(nn.Module):
         x[torch.isinf(x)] = 0
         x[torch.isnan(x)] = 0
         return x
+
+    def sample(self, inputs, targets, neighbor):
+        self.inputs = torch.cat((self.inputs, inputs), dim=0)
+        self.targets = torch.cat((self.targets, targets), dim=0)
+        self.neighbor += neighbor
+
+        if self.inputs.size(0) > self.args.memory_size:
+            idx = torch.randperm(self.inputs.size(0))[:self.args.memory_size]
+            # indexes = torch.cat(indexes,dim=0)
+            self.inputs = self.inputs[idx]
+            self.targets = self.targets[idx]
+            self.neighbor = [self.neighbor[i] for i in idx.tolist()]
 
 
 if __name__ == "__main__":
