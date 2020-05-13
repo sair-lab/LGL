@@ -31,10 +31,9 @@ from layer import FeatBrd1d
 
 
 class Net(nn.Module):
-    def __init__(self, args, hidden=2, num_class=7):
+    def __init__(self, args, feat_len, num_class, hidden=2):
         super(Net, self).__init__()
         self.args = args
-        feat_len = 1433
         self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden)
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
         self.feat2 = FeatBrd1d(in_channels=hidden, out_channels=hidden)
@@ -51,11 +50,9 @@ class Net(nn.Module):
 
     def forward(self, x, neighbor):
         fadj = self.feature_adjacency(x, neighbor)
-        adj = self.row_normalize(self.adj.sqrt()) + torch.eye(x.size(-1),device=x.device)
-        x = self.feat1(x, fadj)
-        x = self.acvt1(x)
-        x = self.feat2(x, fadj)
-        x = self.acvt2(x)
+        adj = self.row_normalize(self.adj.sqrt() + torch.eye(x.size(-1), device=x.device))
+        x = self.acvt1(self.feat1(x, fadj))
+        x = self.acvt2(self.feat2(x, fadj))
         return self.classifier(x)
 
     def observe(self, inputs, targets, neighbor):
@@ -78,14 +75,14 @@ class Net(nn.Module):
             self.optimizer.step()
 
     def feature_adjacency(self, x, y):
-        adj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
-        adj += adj.transpose(-1, -2)
-        self.adj += (adj/torch.cuda.LongTensor([yi.size(0) for yi in y]).view(-1,1,1)).sum(0)
-        return self.row_normalize(adj.sqrt()) + torch.eye(x.size(-1), device=x.device)
+        fadj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
+        fadj += fadj.transpose(-2, -1)
+        adj = (fadj/torch.FloatTensor([yi.size(0) for yi in y]).to(x.device).view(-1,1,1)).sum(0)
+        self.adj = self.args.adj_momentum * self.adj + (1-self.args.adj_momentum) * adj
+        return self.row_normalize(fadj.sqrt()) + torch.eye(x.size(-1), device=x.device)
 
     def row_normalize(self, x):
-        x = x / x.sum(1, keepdim=True)
-        x[torch.isinf(x)] = 0
+        x = x / (x.sum(1, keepdim=True) + 1e-7)
         x[torch.isnan(x)] = 0
         return x
 
@@ -96,9 +93,7 @@ class Net(nn.Module):
 
         if self.inputs.size(0) > self.args.memory_size:
             idx = torch.randperm(self.inputs.size(0))[:self.args.memory_size]
-            # indexes = torch.cat(indexes,dim=0)
-            self.inputs = self.inputs[idx]
-            self.targets = self.targets[idx]
+            self.inputs, self.targets = self.inputs[idx], self.targets[idx]
             self.neighbor = [self.neighbor[i] for i in idx.tolist()]
 
 

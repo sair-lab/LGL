@@ -97,6 +97,7 @@ class Citation(VisionDataset):
                 raise RuntimeError('Citation dataset name {} wrong'.format(self.name))
             with open(data_file, 'wb') as f:
                 torch.save(self.data, data_file)
+        self.feat_len, self.num_class = self.data.features.shape[1], self.data.num_labels
 
 
 def citation_collate(batch):
