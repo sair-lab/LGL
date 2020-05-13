@@ -100,8 +100,8 @@ class Citation(VisionDataset):
 
 
 def citation_collate(batch):
-    feature = torch.stack([item[0] for item in batch],dim=0)
-    labels = torch.stack([item[1] for item in batch],dim=0)
+    feature = torch.stack([item[0] for item in batch], dim=0)
+    labels = torch.stack([item[1] for item in batch], dim=0)
     neighbor = [item[2] for item in batch]
     return [feature, labels, neighbor]
 
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     import torch.utils.data as Data
 
     train_data = Citation(root='/data/datasets', name='Cora', data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=1, shuffle=True, num_workers=0)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=10, shuffle=True, num_workers=0, collate_fn=citation_collate)
 
     for batch_idx, (x, y, f) in enumerate(train_loader):
         if torch.cuda.is_available():
-            x, y, f = x.cuda(), y.cuda(), f.cuda()
-        print(batch_idx, x.shape, y.item(), f.shape)
+            x, y, f = x.cuda(), y.cuda(), [i.cuda() for i in f]
+        print(batch_idx, x.shape, y.shape, len(f))

@@ -26,6 +26,7 @@
 # DAMAGE.
 
 import os
+import tqdm
 import copy
 import torch
 import os.path
@@ -63,16 +64,16 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
     parser.add_argument("--batch-size", type=int, default=10, help="number of minibatch size")
     parser.add_argument("--iteration", type=int, default=3, help="number of training iteration")
-    parser.add_argument("--memory-size", type=int, default=100, help="number of training iteration")
-    parser.add_argument("--momentum", type=float, default=0, help="momentum of the optimizer")
-    parser.add_argument("--gamma", type=float, default=0.1, help="learning rate multiplier, use 0.01 for citeseer")
-    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
+    parser.add_argument("--memory-size", type=int, default=10, help="number of samples")
+    parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
+    parser.add_argument("--adj-momentum", type=float, default=0, help="momentum of the feature adjacency")
+    parser.add_argument('--seed', type=int, default=1, help='Random seed.')
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
-    train_data = Citation(root=args.data_root,  name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
+    train_data = Citation(root=args.data_root, name=args.dataset, data_type='train', download=True)
     val_data = Citation(root=args.data_root, name=args.dataset, data_type='val', download=True)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
     val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
     net = Net(args).cuda() if torch.cuda.is_available() else Net(args)
@@ -82,11 +83,11 @@ if __name__ == '__main__':
         net.observe(inputs, targets, neighbor)
         if batch_idx % 10 == 0:
             val_acc = performance(val_loader, net)
-            print('val_acc: %.2f'%(val_acc))
+            print('val_acc: %.2f in %d batch'%(val_acc, batch_idx))
 
     # train_loss, train_acc = train(train_loader, net, criterion, optimizer)
     test_data = Citation(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
-    test_acc = performance(test_loader, net)
-    print('test_acc: %.2f'%(test_acc))
+    train_acc, val_acc, test_acc = performance(train_loader, net), performance(val_loader, net), performance(test_loader, net)
+    print('train_acc: %.2f, val_acc: %.2f, test_acc: %.2f'%(train_acc, val_acc, test_acc))
     print('number of parameters:', count_parameters(net))
