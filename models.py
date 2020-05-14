@@ -74,6 +74,7 @@ class Net(nn.Module):
             loss.backward()
             self.optimizer.step()
 
+    @torch.no_grad()
     def feature_adjacency(self, x, y):
         fadj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
         fadj += fadj.transpose(-2, -1)
@@ -81,11 +82,13 @@ class Net(nn.Module):
         self.adj = self.args.adj_momentum * self.adj + (1-self.args.adj_momentum) * adj
         return self.row_normalize(fadj.sqrt())
 
+    @torch.no_grad()
     def row_normalize(self, x):
         x = x / (x.sum(1, keepdim=True) + 1e-7)
         x[torch.isnan(x)] = 0
         return x
 
+    @torch.no_grad()
     def sample(self, inputs, targets, neighbor):
         self.inputs = torch.cat((self.inputs, inputs), dim=0)
         self.targets = torch.cat((self.targets, targets), dim=0)
@@ -95,16 +98,3 @@ class Net(nn.Module):
             idx = torch.randperm(self.inputs.size(0))[:self.args.memory_size]
             self.inputs, self.targets = self.inputs[idx], self.targets[idx]
             self.neighbor = [self.neighbor[i] for i in idx.tolist()]
-
-
-if __name__ == "__main__":
-    '''
-    Debug script for FGN model 
-    '''
-    n_feature, n_channel, n_batch = 1433, 1, 3
-    feature = torch.FloatTensor(n_batch, n_channel, n_feature).random_()
-    adjacency = torch.FloatTensor(n_feature, n_feature).random_()
-
-    model = Net(adjacency)
-    label = model(feature)
-    print('Input: {}; Output: {}'.format(feature.shape, label.shape))
