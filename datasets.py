@@ -35,7 +35,6 @@ from dgl import DGLGraph
 from dgl.data import citegrh
 from itertools  import compress
 from torchvision.datasets import VisionDataset
-from torchvision.datasets.utils import makedir_exist_ok
 
 
 class Citation(VisionDataset):
@@ -81,7 +80,7 @@ class Citation(VisionDataset):
         """Download data if it doesn't exist in processed_folder already."""
         print('Loading {} Dataset...'.format(self.name))
         processed_folder = os.path.join(self.root, self.name)
-        makedir_exist_ok(processed_folder)
+        os.makedirs(processed_folder, exist_ok=True)
         os.environ["DGL_DOWNLOAD_DIR"] = processed_folder
         data_file = os.path.join(processed_folder, 'data.pt')
         if os.path.exists(data_file):
