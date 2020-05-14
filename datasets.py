@@ -26,6 +26,7 @@
 # DAMAGE.
 
 import os
+import dgl
 import tqdm
 import torch
 import os.path
@@ -64,8 +65,9 @@ class Citation(VisionDataset):
 
         self.features = torch.FloatTensor(self.data.features)
         self.ids = torch.LongTensor(list(range(self.features.size(0))))
-        self.data.graph.remove_edges_from(self.data.graph.selfloop_edges())
-        self.src, self.dst = DGLGraph(self.data.graph).edges()
+        graph = DGLGraph(self.data.graph)
+        graph = dgl.transform.add_self_loop(graph)
+        self.src, self.dst = graph.edges()
         self.labels = torch.LongTensor(self.data.labels)
         print('{} Dataset for {} Loaded.'.format(self.name, data_type))
 

@@ -35,8 +35,6 @@ from dgl import DGLGraph
 from dgl.data import citegrh
 from itertools  import compress
 from torchvision.datasets import VisionDataset
-from torchvision.datasets.utils import makedir_exist_ok
-
 
 class Citation(VisionDataset):
     """ `Citation Dataset`.
@@ -90,7 +88,7 @@ class Citation(VisionDataset):
             return
         
         print('Downloading and Preprocessing {} Dataset...'.format(self.name))
-        makedir_exist_ok(self.processed_folder)
+        os.makedirs(self.processed_folder, exist_ok=True)
 
         os.environ["DGL_DOWNLOAD_DIR"] = self.processed_folder
 
