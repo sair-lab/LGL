@@ -36,6 +36,7 @@ import torch.nn as nn
 from models import Net
 import torch.utils.data as Data
 from datasets import Citation, citation_collate
+from continuum import Continuum
 
 
 def performance(loader, net):
@@ -72,19 +73,27 @@ if __name__ == '__main__':
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
-    train_data = Citation(root=args.data_root, name=args.dataset, data_type='train', download=True)
     val_data = Citation(root=args.data_root, name=args.dataset, data_type='val', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
     val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
-
-    net = Net(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
-    for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
-        inputs, targets = inputs.to(args.device), targets.to(args.device)
-        neighbor = [item.to(args.device) for item in neighbor]
-        net.observe(inputs, targets, neighbor)
-
     test_data = Citation(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
-    train_acc, val_acc, test_acc = performance(train_loader, net), performance(val_loader, net), performance(test_loader, net)
-    print('train_acc: %.2f, val_acc: %.2f, test_acc: %.2f'%(train_acc, val_acc, test_acc))
+
+    evaluation_metrics = {}
+    incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, task_type = 0)    
+
+    net = Net(args, feat_len=incremental_data.feat_len, num_class=incremental_data.num_class).to(args.device)
+    for i in range(incremental_data.num_class):
+        incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, task_type = i)    
+        incremental_Loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
+        print("class idx %d samples %d"%(i,incremental_data.__len__()))
+        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_Loader)):
+            inputs, targets = inputs.to(args.device), targets.to(args.device)
+            neighbor = [item.to(args.device) for item in neighbor]
+            net.observe(inputs, targets, neighbor)
+
+        train_acc, val_acc, test_acc = performance(incremental_Loader, net), performance(val_loader, net), performance(test_loader, net)
+        evaluation_metrics[i]=[train_acc, val_acc, test_acc]
+
+    for k in evaluation_metrics.keys():
+        print('train_acc: %2.2f, val_acc: %2.2f, test_acc: %2.2f'%(tuple(evaluation_metrics[k])))
     print('number of parameters:', count_parameters(net))
