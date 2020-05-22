@@ -1,2 +1,2 @@
-# LGN
-Life-long Graph Networks
+# LGL
+Lifelong Graph Learning
