@@ -33,6 +33,7 @@ import os.path
 import argparse
 import numpy as np
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from models import Net
 import torch.utils.data as Data
 from datasets import Citation, citation_collate
@@ -57,43 +58,57 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-if __name__ == '__main__':
-    # Arguements
-    parser = argparse.ArgumentParser(description='Feature Graph Networks')
-    parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
-    parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
-    parser.add_argument("--dataset", type=str, default='pubmed', help="cora, citeseer, or pubmed")
-    parser.add_argument("--lr", type=float, default=0.1, help="learning rate, 0.01 for citeseer")
-    parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
-    parser.add_argument("--iteration", type=int, default=3, help="number of training iteration")
-    parser.add_argument("--memory-size", type=int, default=10, help="number of samples")
-    parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
-    parser.add_argument("--adj-momentum", type=float, default=0.9, help="momentum of the feature adjacency")
-    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
-    args = parser.parse_args(); print(args)
-    torch.manual_seed(args.seed)
+# Arguements
+parser = argparse.ArgumentParser(description='Feature Graph Networks')
+parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
+parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
+parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
+parser.add_argument("--lr", type=float, default=0.1, help="learning rate, 0.01 for citeseer")
+parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
+parser.add_argument("--iteration", type=int, default=3, help="number of training iteration")
+parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
+parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
+parser.add_argument("--adj-momentum", type=float, default=0.9, help="momentum of the feature adjacency")
+parser.add_argument('--seed', type=int, default=0, help='Random seed.')
+parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
+args = parser.parse_args(); print(args)
+torch.manual_seed(args.seed)
 
-    val_data = Citation(root=args.data_root, name=args.dataset, data_type='val', download=True)
+if __name__ == "__main__":
+
+    val_data = Continuum(root=args.data_root, name=args.dataset, data_type='val', download=True)
     val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
-    test_data = Citation(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
-    evaluation_metrics = {}
-    incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, task_type = 0)    
+    evaluation_metrics = []
 
-    net = Net(args, feat_len=incremental_data.feat_len, num_class=incremental_data.num_class).to(args.device)
-    for i in range(incremental_data.num_class):
-        incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, task_type = i)    
+    net = Net(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
+    for i in range(train_data.num_class):
+        incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
         incremental_Loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
-        print("class idx %d samples %d"%(i,incremental_data.__len__()))
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_Loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
-        train_acc, val_acc, test_acc = performance(incremental_Loader, net), performance(val_loader, net), performance(test_loader, net)
-        evaluation_metrics[i]=[train_acc, val_acc, test_acc]
+        train_acc, val_acc, test_acc = performance(incremental_Loader, net), performance(val_loader, net), performance(train_loader, net)
+        evaluation_metrics.append([i,incremental_data.__len__(),train_acc, val_acc, test_acc])
 
-    for k in evaluation_metrics.keys():
-        print('train_acc: %2.2f, val_acc: %2.2f, test_acc: %2.2f'%(tuple(evaluation_metrics[k])))
+    evaluation_metrics = np.array(evaluation_metrics)
+    for k in range(evaluation_metrics.shape[0]):
+        print('task_num: %i sample_numbers: %i incremental_acc: %2.2f, val_acc: %2.2f, train_acc: %2.2f'%(tuple(evaluation_metrics[k])))
     print('number of parameters:', count_parameters(net))
+
+    if args.plot:
+        tasks = evaluation_metrics[:,0]+1
+        plt.plot(tasks, evaluation_metrics[:,3],"r-o", label = "val_acc")
+        plt.plot(tasks, evaluation_metrics[:,4],"b-o", label = "train_acc")
+        plt.title("datasets: %s memory size: %s lr: %s batch_szie: %s"%\
+                  (args.dataset,args.memory_size, args.lr, args.batch_size))
+        plt.legend()
+        plt.xlabel("task")
+        plt.ylabel("accuracy (%)")
+        for i, txt in enumerate(evaluation_metrics[:,1]):
+            plt.annotate(int(txt),(tasks[i], evaluation_metrics[:,3][i]))
+        plt.savefig("doc/plt.png")

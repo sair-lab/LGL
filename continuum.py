@@ -23,8 +23,11 @@ class Continuum(VisionDataset):
         self.src, self.dst = graph.edges()
         self.labels = torch.LongTensor(self.data.labels)
 
-        if data_type == 'train':
-            self.mask = (np.logical_and((self.labels==task_type),self.data.train_mask)).type(torch.bool)#low efficient
+        if data_type == 'train':#return all training data test_maks and train_mask
+            self.mask = np.logical_or(self.data.test_mask,self.data.train_mask)
+        elif data_type == 'incremental':
+            mask = np.logical_or(self.data.test_mask,self.data.train_mask)
+            self.mask = (np.logical_and((self.labels==task_type),mask)).type(torch.bool)#low efficient
         elif data_type == 'val':
             self.mask = torch.BoolTensor(self.data.val_mask)
         elif data_type == 'test':
