@@ -94,16 +94,17 @@ if __name__ == "__main__":
         train_acc, test_acc = performance(incremental_loader, net), performance(val_loader, net)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
 
+    evaluation_metrics = torch.Tensor(evaluation_metrics)
     print('        | task | sample | train_acc | test_acc |')
-    print(torch.Tensor(evaluation_metrics))
+    print(evaluation_metrics)
     print('number of parameters:', count_parameters(net))
 
     if args.plot:
         import matplotlib.pyplot as plt
         tasks = evaluation_metrics[:,0]+1
-        plt.plot(tasks, evaluation_metrics[:,3],"r-o", label = "val_acc")
-        plt.plot(tasks, evaluation_metrics[:,4],"b-o", label = "train_acc")
-        plt.title("datasets: %s memory size: %s lr: %s batch_szie: %s"%(args.dataset,args.memory_size, args.lr, args.batch_size))
+        plt.plot(tasks, evaluation_metrics[:,2],"b-o", label = "train acc")
+        plt.plot(tasks, evaluation_metrics[:,3],"r-o", label = "test acc")
+        plt.title("datasets: %s memory size: %s lr: %s batch_size: %s"%(args.dataset,args.memory_size, args.lr, args.batch_size))
         plt.legend()
         plt.xlabel("task")
         plt.ylabel("accuracy (%)")
