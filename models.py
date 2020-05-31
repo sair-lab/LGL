@@ -12,20 +12,6 @@
 
 # 3. Neither the name of the copyright holder nor the names of its contributors may be 
 # used to endorse or promote products derived from this software without specific prior 
-# Copyright <2020> <Chen Wang <https://chenwang.site>, Carnegie Mellon University>
-
-# Redistribution and use in source and binary forms, with or without modification, are 
-# permitted provided that the following conditions are met:
-
-# 1. Redistributions of source code must retain the above copyright notice, this list of 
-# conditions and the following disclaimer.
-
-# 2. Redistributions in binary form must reproduce the above copyright notice, this list 
-# of conditions and the following disclaimer in the documentation and/or other materials 
-# provided with the distribution.
-
-# 3. Neither the name of the copyright holder nor the names of its contributors may be 
-# used to endorse or promote products derived from this software without specific prior 
 # written permission.
 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY 
@@ -40,6 +26,7 @@
 # DAMAGE.
 
 import torch
+import numpy as np
 import torch.nn as nn
 from layer import FeatBrd1d
 
@@ -115,7 +102,7 @@ class Net(nn.Module):
             idx = torch.randperm(self.inputs.size(0))[:self.args.memory_size]
             self.inputs, self.targets = self.inputs[idx], self.targets[idx]
             self.neighbor = [self.neighbor[i] for i in idx.tolist()]
-    
+
     @torch.no_grad()
     def sample(self, inputs, targets, neighbor):
         self.sample_viewed += inputs.size(0)
@@ -123,9 +110,9 @@ class Net(nn.Module):
         
         self.targets = torch.cat((self.targets, targets), dim=0)
         self.inputs = torch.cat((self.inputs,inputs), dim = 0)
-        self.memory_order = torch.cat((self.memory_order,torch.LongTensor(list(range(inputs.size()[0]-1,-1,-1)))), dim = 0)# for debug
+        self.memory_order = torch.cat((self.memory_order, torch.LongTensor(list(range(inputs.size()[0]-1,-1,-1)))), dim = 0)# for debug
         self.neighbor += neighbor
-        
+
         node_len = int(self.inputs.size(0))
         ext_memory = node_len - self.memory_size
         if ext_memory > 0:
