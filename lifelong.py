@@ -33,11 +33,10 @@ import os.path
 import argparse
 import numpy as np
 import torch.nn as nn
-import matplotlib.pyplot as plt
 from models import Net
 import torch.utils.data as Data
-from datasets import Citation, citation_collate
 from continuum import Continuum
+from datasets import Citation, citation_collate
 
 
 def performance(loader, net):
@@ -45,7 +44,7 @@ def performance(loader, net):
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
             if torch.cuda.is_available():
-                inputs, targets, neighbor = inputs.cuda(), targets.cuda(), [item.cuda() for item in neighbor]
+                inputs, targets, neighbor = inputs.to(args.device), targets.to(args.device), [item.to(args.device) for item in neighbor]
             outputs = net(inputs, neighbor)
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
@@ -86,26 +85,26 @@ if __name__ == "__main__":
     net = Net(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
     for i in range(train_data.num_class):
         incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
-        incremental_Loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
-        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_Loader)):
+        incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
+        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
-        train_acc, val_acc, test_acc = performance(incremental_Loader, net), performance(val_loader, net), performance(train_loader, net)
-        evaluation_metrics.append([i,incremental_data.__len__(),train_acc, val_acc, test_acc])
+        train_acc, test_acc = performance(incremental_loader, net), performance(val_loader, net)
+        evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
 
-    evaluation_metrics = np.array(evaluation_metrics)
-    for k in range(evaluation_metrics.shape[0]):
-        print('task_num: %i sample_numbers: %i incremental_acc: %2.2f, val_acc: %2.2f, train_acc: %2.2f'%(tuple(evaluation_metrics[k])))
+    evaluation_metrics = torch.Tensor(evaluation_metrics)
+    print('        | task | sample | train_acc | test_acc |')
+    print(evaluation_metrics)
     print('number of parameters:', count_parameters(net))
 
     if args.plot:
+        import matplotlib.pyplot as plt
         tasks = evaluation_metrics[:,0]+1
-        plt.plot(tasks, evaluation_metrics[:,3],"r-o", label = "val_acc")
-        plt.plot(tasks, evaluation_metrics[:,4],"b-o", label = "train_acc")
-        plt.title("datasets: %s memory size: %s lr: %s batch_szie: %s"%\
-                  (args.dataset,args.memory_size, args.lr, args.batch_size))
+        plt.plot(tasks, evaluation_metrics[:,2],"b-o", label = "train acc")
+        plt.plot(tasks, evaluation_metrics[:,3],"r-o", label = "test acc")
+        plt.title("datasets: %s memory size: %s lr: %s batch_size: %s"%(args.dataset,args.memory_size, args.lr, args.batch_size))
         plt.legend()
         plt.xlabel("task")
         plt.ylabel("accuracy (%)")

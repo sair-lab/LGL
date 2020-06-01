@@ -26,8 +26,8 @@
 # DAMAGE.
 
 import torch
-import torch.nn as nn
 import numpy as np
+import torch.nn as nn
 from layer import FeatBrd1d
 
 
@@ -102,7 +102,7 @@ class Net(nn.Module):
             idx = torch.randperm(self.inputs.size(0))[:self.args.memory_size]
             self.inputs, self.targets = self.inputs[idx], self.targets[idx]
             self.neighbor = [self.neighbor[i] for i in idx.tolist()]
-    
+
     @torch.no_grad()
     def sample(self, inputs, targets, neighbor):
         self.sample_viewed += inputs.size(0)
@@ -110,9 +110,9 @@ class Net(nn.Module):
         
         self.targets = torch.cat((self.targets, targets), dim=0)
         self.inputs = torch.cat((self.inputs,inputs), dim = 0)
-        self.memory_order = torch.cat((self.memory_order,torch.LongTensor(list(range(inputs.size()[0]-1,-1,-1)))), dim = 0)# for debug
+        self.memory_order = torch.cat((self.memory_order, torch.LongTensor(list(range(inputs.size()[0]-1,-1,-1)))), dim = 0)# for debug
         self.neighbor += neighbor
-        
+
         node_len = int(self.inputs.size(0))
         ext_memory = node_len - self.memory_size
         if ext_memory > 0:
