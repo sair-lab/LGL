@@ -92,7 +92,7 @@ class Net(nn.Module):
 
     @torch.no_grad()
     def row_normalize(self, x):
-        x = x / (x.sum(1, keepdim=True) + 1e-7)
+        x = x / (x.abs().sum(1, keepdim=True) + 1e-7)
         x[torch.isnan(x)] = 0
         return x
 
