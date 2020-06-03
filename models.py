@@ -54,7 +54,7 @@ class Net(nn.Module):
 
     def forward(self, x, neighbor):
         fadj = self.feature_adjacency(x, neighbor)
-        adj = self.row_normalize(self.adj.sqrt())
+        adj = self.row_normalize(self.sgnroot(self.adj))
         x = self.acvt1(self.feat1(x, fadj))
         x = self.acvt2(self.feat2(x, fadj))
         return self.classifier(x)
@@ -84,7 +84,11 @@ class Net(nn.Module):
         fadj += fadj.transpose(-2, -1)
         adj = (fadj/torch.FloatTensor([yi.size(0) for yi in y]).to(x.device).view(-1,1,1)).sum(0)
         self.adj = self.args.adj_momentum * self.adj + (1-self.args.adj_momentum) * adj
-        return self.row_normalize(fadj.sqrt())
+        return self.row_normalize(self.sgnroot(fadj))
+
+    @torch.no_grad()
+    def sgnroot(self, x):
+        return x.sign()*(x.abs().sqrt())
 
     @torch.no_grad()
     def row_normalize(self, x):
