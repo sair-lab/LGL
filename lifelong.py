@@ -57,33 +57,37 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-# Arguements
-parser = argparse.ArgumentParser(description='Feature Graph Networks')
-parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
-parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
-parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
-parser.add_argument("--lr", type=float, default=0.1, help="learning rate, 0.01 for citeseer")
-parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
-parser.add_argument("--iteration", type=int, default=3, help="number of training iteration")
-parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
-parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
-parser.add_argument("--adj-momentum", type=float, default=0.9, help="momentum of the feature adjacency")
-parser.add_argument('--seed', type=int, default=0, help='Random seed.')
-parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
-args = parser.parse_args(); print(args)
-torch.manual_seed(args.seed)
-
 if __name__ == "__main__":
 
-    val_data = Continuum(root=args.data_root, name=args.dataset, data_type='val', download=True)
-    val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
-    train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    # Arguements
+    parser = argparse.ArgumentParser(description='Feature Graph Networks')
+    parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
+    parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
+    parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
+    parser.add_argument("--pretrained", type=str, default=None, help="pretrained model file")
+    parser.add_argument("--lr", type=float, default=0.05, help="learning rate, 0.01 for citeseer")
+    parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
+    parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
+    parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
+    parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
+    parser.add_argument("--adj-momentum", type=float, default=0.9, help="momentum of the feature adjacency")
+    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
+    parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
+    args = parser.parse_args(); print(args)
+    torch.manual_seed(args.seed)
 
+    test_data = Continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+
+    if args.pretrained is not None:
+        net = torch.load(args.pretrained, map_location=args.device)
+        test_acc = performance(test_loader, net)
+        print("Test Accuracy", test_acc)
+        exit()
+
+    net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
-
-    net = Net(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
-    for i in range(train_data.num_class):
+    for i in range(test_data.num_class):
         incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
         incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
@@ -91,7 +95,7 @@ if __name__ == "__main__":
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
-        train_acc, test_acc = performance(incremental_loader, net), performance(val_loader, net)
+        train_acc, test_acc = performance(incremental_loader, net), performance(test_loader, net)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
 
     evaluation_metrics = torch.Tensor(evaluation_metrics)
