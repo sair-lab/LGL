@@ -11,7 +11,7 @@ from itertools  import compress
 from torchvision.datasets import VisionDataset
 
 class Continuum(VisionDataset):
-    def __init__(self, root='~/.dgl', name = 'cora', data_type='train', download=True, task_type = 0):
+    def __init__(self, root='~/.dgl', name='cora', data_type='train', download=True, task_type=0):
         super(Continuum, self).__init__(root)
         self.name = name
 
@@ -23,13 +23,13 @@ class Continuum(VisionDataset):
         self.src, self.dst = graph.edges()
         self.labels = torch.LongTensor(self.data.labels)
 
-        if data_type == 'train': # return all training data test_maks and train_mask
+        if data_type == 'train': # data incremental; use test and train as train
             self.mask = np.logical_or(self.data.test_mask, self.data.train_mask)
-        elif data_type == 'incremental':
-            mask = np.logical_or(self.data.test_mask, self.data.train_mask) # use test and train as train
-            self.mask = (np.logical_and((self.labels==task_type),mask)).type(torch.bool)#low efficient
+        elif data_type == 'incremental': # class incremental; use test and train as train
+            mask = np.logical_or(self.data.test_mask, self.data.train_mask)
+            self.mask = (np.logical_and((self.labels==task_type),mask)).type(torch.bool) # low efficient
         elif data_type == 'test':
-            self.mask = torch.BoolTensor(self.data.val_mask) # use val as test, val is larger than test
+            self.mask = torch.BoolTensor(self.data.val_mask) # use val as test, since val is larger than test
         else:
             raise RuntimeError('data type {} wrong'.format(data_type))
 
