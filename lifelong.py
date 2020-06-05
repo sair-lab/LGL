@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
-    parser.add_argument("--pretrained", type=str, default=None, help="pretrained model file")
+    parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
     parser.add_argument("--lr", type=float, default=0.05, help="learning rate, 0.01 for citeseer")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
@@ -79,8 +79,8 @@ if __name__ == "__main__":
     test_data = Continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
-    if args.pretrained is not None:
-        net = torch.load(args.pretrained, map_location=args.device)
+    if args.load is not None:
+        net = torch.load(args.load, map_location=args.device)
         test_acc = performance(test_loader, net)
         print("Test Accuracy", test_acc)
         exit()
