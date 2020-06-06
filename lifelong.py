@@ -37,6 +37,8 @@ from models import Net
 import torch.utils.data as Data
 from continuum import Continuum
 from datasets import Citation, citation_collate
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def performance(loader, net):
@@ -49,7 +51,7 @@ def performance(loader, net):
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += predicted.eq(targets.data).cpu().sum().item()
-        acc = 100.*correct/total
+        acc = correct/total
     return acc
 
 
@@ -80,9 +82,11 @@ if __name__ == "__main__":
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
     if args.load is not None:
+        train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
         net = torch.load(args.load, map_location=args.device)
-        test_acc = performance(test_loader, net)
-        print("Test Accuracy", test_acc)
+        train_acc, test_acc = performance(train_loader, net),  performance(test_loader, net)
+        print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
         exit()
 
     net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)

@@ -40,6 +40,8 @@ from models import Net
 import torch.utils.data as Data
 from datasets import Citation, citation_collate
 from continuum import Continuum
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def performance(loader, net):
@@ -52,7 +54,7 @@ def performance(loader, net):
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += predicted.eq(targets.data).cpu().sum().item()
-        acc = 100.*correct/total
+        acc = correct/total
     return acc
 
 
@@ -95,4 +97,4 @@ if __name__ == "__main__":
             torch.save(net, args.save)
 
     train_acc, test_acc = performance(train_loader, net),  performance(test_loader, net)
-    print("Train Acc: %.2f, Test Acc: %.2f"%(train_acc, test_acc))
+    print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
