@@ -60,61 +60,40 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-# Arguements
-parser = argparse.ArgumentParser(description='Feature Graph Networks')
-parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
-parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
-parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
-parser.add_argument("--lr", type=float, default=0.1, help="learning rate, 0.01 for citeseer")
-parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
-parser.add_argument("--iteration", type=int, default=3, help="number of training iteration")
-parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
-parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
-parser.add_argument("--adj-momentum", type=float, default=0.9, help="momentum of the feature adjacency")
-parser.add_argument('--seed', type=int, default=0, help='Random seed.')
-parser.add_argument('--repeat', type=int, default=3, help='repeate.')
-parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
-parser.add_argument("-s", "--save", action="store_true", help="save file")
-
-args = parser.parse_args(); print(args)
-torch.manual_seed(args.seed)
-
 if __name__ == "__main__":
+    # Arguements
+    parser = argparse.ArgumentParser(description='Feature Graph Networks')
+    parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
+    parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
+    parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
+    parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
+    parser.add_argument("--store", type=str, default=None, help="model file to save")
+    parser.add_argument("--lr", type=float, default=0.05, help="learning rate, 0.01 for citeseer")
+    parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
+    parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
+    parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
+    parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
+    parser.add_argument("--adj-momentum", type=float, default=0.9, help="momentum of the feature adjacency")
+    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
+    args = parser.parse_args(); print(args)
+    torch.manual_seed(args.seed)
 
-    val_data = Continuum(root=args.data_root, name=args.dataset, data_type='val', download=True)
-    val_loader = Data.DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
     train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
     train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
     test_data = Continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
-    results = []
-    for r in range(args.repeat):
-        torch.manual_seed(r)
-        evaluation_metrics = []
-
+    if args.load is not None:
+        net = torch.load(args.load, map_location=args.device)
+    else:
         net = Net(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
-
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
-            if batch_idx %10 == 0:
-                train_acc, val_acc, test_acc = performance(train_loader, net), performance(val_loader, net), performance(test_loader, net)
-                evaluation_metrics.append([batch_idx,train_acc, val_acc, test_acc])
-                print(val_acc)
+            
+        if args.store is not None:
+            torch.save(net, args.save)
 
-        for k in range(len(evaluation_metrics)):
-            print('task_num: %i incremental_acc: %2.2f, val_acc: %2.2f, train_acc: %2.2f'%(tuple(evaluation_metrics[k])))
-        print('number of parameters:', count_parameters(net))
-        results.append(evaluation_metrics)
-        np.savetxt("temp.txt",np.array(results)[...,2].mean(axis=1),fmt="%2.3f")
-    results = np.array(results)
-
-    if args.save:
-        save_file = "doc/"+args.dataset+"save-%f"%time.time()
-        with open(save_file,"wb") as file:
-            pickle.dump(results, file)
-        np.savetxt(save_file+".txt",results[:,-1,2].mean(axis=1),fmt="%2.3f")
-
-
+    train_acc, test_acc = performance(train_loader, net),  performance(test_loader, net)
+    print("Train Acc: %.2f, Test Acc: %.2f"%(train_acc, test_acc))
