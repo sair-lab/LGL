@@ -67,7 +67,7 @@ if __name__ == "__main__":
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
     parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
-    parser.add_argument("--lr", type=float, default=0.05, help="learning rate, 0.01 for citeseer")
+    parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
