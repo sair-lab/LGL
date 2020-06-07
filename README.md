@@ -30,17 +30,13 @@ To save your model
 
 * Download the pre-trained models from [releases](https://github.com/wang-chen/LGL/releases/download/v1.0/loads.zip).
 
-* Run the following script to evaluate the loaded the model.
-
-* For data-incremental tasks. For example
+* For data-incremental tasks, e.g.
 
         python lifelong_data.py --load loads/data_incre_cora_memory100.model --dataset cora
 
-
-* For class-incremetnal tasks.
+* For class-incremetnal tasks, e.g.
 
         python lifelong.py --load loads/class_incre_cora_memory200.model --dataset cora
-        # Train Acc: 0.902, Test Acc: 0.823
 
 * You are expected to obtain the following performance.
 
