@@ -17,7 +17,7 @@ Lifelong Graph Learning
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset pubmed
 
-To save your model during training
+* To save your model during training
 
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora --save model_file_location
 
@@ -46,18 +46,18 @@ To save your model during training
 
 * You are expected to obtain the following performance.
 
-Data-incremental Tasks
+* Data-incremental Tasks
 
-|     Memory    |         Cora  |  Citeseer     |    Pubmed     |
-| ------------- | ------------- | ------------- | ------------- |
-|       100     |     0.837     |     0.754     |     0.886     |
-|       500     |     0.887     |     0.742     |     0.884     |
+     |     Memory    |         Cora  |  Citeseer     |    Pubmed     |
+     | :-----------: | :-----------: | :-----------: | :-----------: |
+     |       100     |     0.837     |     0.754     |     0.886     |
+     |       500     |     0.887     |     0.742     |     0.884     |
 
+* Class-incremental Tasks
 
-Class-incremental Tasks
-|     Memory    |         Cora  |  Citeseer     |    Pubmed     |
-| ------------- | ------------- | ------------- | ------------- |
-|       200     |     0.823     |      0.712    |     0.830     |
-|       500     |     0.883     |     0.746     |     0.876     |
+     |     Memory    |         Cora  |  Citeseer     |    Pubmed     |
+     | :-----------: | :-----------: | :-----------: | :-----------: |
+     |       200     |     0.823     |      0.712    |     0.830     |
+     |       500     |     0.883     |     0.746     |     0.876     |
 
 * Note that the performan reported in the paper is an average of 10 runs, while the above is only one trial.
