@@ -136,3 +136,42 @@ class Net(nn.Module):
             self.targets = self.targets[mask]
             self.memory_order = self.memory_order[mask]
             self.neighbor = [self.neighbor[i] for i in mask.nonzero()]
+
+
+class PlainNet(nn.Module):
+    '''
+    Net without memory
+    '''
+    def __init__(self, feat_len, num_class, hidden=10):
+        super(PlainNet, self).__init__()
+        self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden)
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
+        self.feat2 = FeatBrd1d(in_channels=hidden, out_channels=hidden)
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(feat_len*hidden, 100),
+            nn.Softsign(),
+            nn.Linear(100, num_class))
+
+    def forward(self, x, neighbor):
+        fadj = self.feature_adjacency(x, neighbor)
+        x = self.acvt1(self.feat1(x, fadj))
+        x = self.acvt2(self.feat2(x, fadj))
+        return self.classifier(x)
+
+    @torch.no_grad()
+    def feature_adjacency(self, x, y):
+        fadj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
+        fadj += fadj.transpose(-2, -1)
+        return self.row_normalize(self.sgnroot(fadj))
+
+    @torch.no_grad()
+    def sgnroot(self, x):
+        return x.sign()*(x.abs().sqrt())
+
+    @torch.no_grad()
+    def row_normalize(self, x):
+        x = x / (x.abs().sum(1, keepdim=True) + 1e-7)
+        x[torch.isnan(x)] = 0
+        return x
