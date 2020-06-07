@@ -1,7 +1,7 @@
 # LGL
 Lifelong Graph Learning
 
-# Requirement
+# Dependencies
 
 * Python 3
 * [PyTorch v1.5+](https://pytorch.org/get-started)
