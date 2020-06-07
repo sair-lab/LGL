@@ -28,6 +28,7 @@
 import torch
 import torch.nn as nn
 from layer import FeatBrd1d
+from layer import FeatTrans1d
 
 
 class FGN(nn.Module):
@@ -50,6 +51,63 @@ class FGN(nn.Module):
         x = self.feat2(x)
         x = self.batch2(x)
         x = self.acvt(x)
+        return self.classifier(x)
+
+
+class Net(nn.Module):
+    def __init__(self, feat_len, num_class, hidden=10):
+        super(Net, self).__init__()
+        self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden)
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
+        self.feat2 = FeatBrd1d(in_channels=hidden, out_channels=hidden)
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(feat_len*hidden, 100),
+            nn.Softsign(),
+            nn.Linear(100, num_class))
+
+    def forward(self, x, neighbor):
+        fadj = self.feature_adjacency(x, neighbor)
+        x = self.acvt1(self.feat1(x, fadj))
+        x = self.acvt2(self.feat2(x, fadj))
+        return self.classifier(x)
+
+    @torch.no_grad()
+    def feature_adjacency(self, x, y):
+        fadj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
+        fadj += fadj.transpose(-2, -1)
+        return self.row_normalize(self.sgnroot(fadj))
+
+    @torch.no_grad()
+    def sgnroot(self, x):
+        return x.sign()*(x.abs().sqrt())
+
+    @torch.no_grad()
+    def row_normalize(self, x):
+        x = x / (x.abs().sum(1, keepdim=True) + 1e-7)
+        x[torch.isnan(x)] = 0
+        return x
+
+
+class Nets(nn.Module):
+    def __init__(self, feat_len, num_class, hidden=2):
+        super(Nets, self).__init__()
+        c = [1, 5, 10]
+        f = [feat_len, 16, 1]
+        self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
+        self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(c[2]*f[2], num_class))
+
+    def forward(self, x, neighbor):
+        x, neighbor = self.feat1(x, neighbor)
+        x = self.acvt1(x)
+        x, neighbor = self.feat2(x, neighbor)
+        x = self.acvt2(x)
         return self.classifier(x)
 
 

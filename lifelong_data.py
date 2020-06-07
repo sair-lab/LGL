@@ -26,39 +26,24 @@
 # DAMAGE.
 
 import os
+import sys
 import tqdm
 import copy
 import torch
-import os.path
+import warnings
 import argparse
-import time
-import pickle
 import numpy as np
 import torch.nn as nn
-import matplotlib.pyplot as plt
-from models import Net
 import torch.utils.data as Data
+
+from models import Net
+from datasets import Continuum
+from lifelong import performance
+from torch_util import count_parameters
 from datasets import Citation, citation_collate
-from continuum import Continuum
-import warnings
+
+sys.path.append('models')
 warnings.filterwarnings("ignore")
-
-
-def performance(loader, net):
-    correct, total = 0, 0
-    with torch.no_grad():
-        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
-            inputs, targets, neighbor = inputs.to(args.device), targets.to(args.device), [item.to(args.device) for item in neighbor]
-            outputs = net(inputs, neighbor)
-            _, predicted = torch.max(outputs.data, 1)
-            total += targets.size(0)
-            correct += predicted.eq(targets.data).cpu().sum().item()
-        acc = correct/total
-    return acc
-
-
-def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 if __name__ == "__main__":
@@ -96,5 +81,5 @@ if __name__ == "__main__":
         if args.store is not None:
             torch.save(net, args.save)
 
-    train_acc, test_acc = performance(train_loader, net),  performance(test_loader, net)
+    train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
     print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))

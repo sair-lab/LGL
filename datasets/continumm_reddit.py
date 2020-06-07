@@ -2,12 +2,10 @@ import os
 import dgl
 import tqdm
 import torch
-import scipy.sparse
-import numpy as np
 import json
 import os.path
 import numpy as np
-import scipy.sparse as sp
+import scipy.sparse
 from dgl import DGLGraph
 from dgl.data import citegrh
 from itertools  import compress

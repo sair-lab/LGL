@@ -21,7 +21,6 @@ To save your model during training
 
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora --save model_file_location
 
-
 * Class-incremental Tasks
 
         python lifelong.py --lr 0.01 --batch-size 10 --dataset cora
@@ -32,6 +31,10 @@ To save your model during training
 # Reproduce the results from paper
 
 * Download the pre-trained models from the [releases](https://github.com/wang-chen/LGL/releases/download/v1.0/loads.zip) Page.
+
+* To reproduce all results, you may simply run:
+
+        bash reproduce.sh
 
 * For data-incremental tasks, e.g.
 
@@ -57,3 +60,4 @@ Class-incremental Tasks
 |       200     |     0.823     |      0.712    |     0.830     |
 |       500     |     0.883     |     0.746     |     0.876     |
 
+* Note that the performan reported in the paper is an average of 10 runs, while the above is only one trial.

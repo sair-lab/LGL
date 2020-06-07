@@ -26,37 +26,38 @@
 # DAMAGE.
 
 import os
+import sys
 import tqdm
 import copy
 import torch
 import os.path
 import argparse
+import warnings
 import numpy as np
 import torch.nn as nn
-from models import Net
 import torch.utils.data as Data
-from continuum import Continuum
+
+from models import Net
+from datasets import Continuum
+from torch_util import count_parameters
 from datasets import Citation, citation_collate
-import warnings
+
+sys.path.append('models')
 warnings.filterwarnings("ignore")
 
 
-def performance(loader, net):
+def performance(loader, net, device='cuda:0'):
     correct, total = 0, 0
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
             if torch.cuda.is_available():
-                inputs, targets, neighbor = inputs.to(args.device), targets.to(args.device), [item.to(args.device) for item in neighbor]
+                inputs, targets, neighbor = inputs.to(device), targets.to(device), [item.to(device) for item in neighbor]
             outputs = net(inputs, neighbor)
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += predicted.eq(targets.data).cpu().sum().item()
         acc = correct/total
     return acc
-
-
-def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 if __name__ == "__main__":
@@ -85,7 +86,7 @@ if __name__ == "__main__":
         train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
         train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
         net = torch.load(args.load, map_location=args.device)
-        train_acc, test_acc = performance(train_loader, net),  performance(test_loader, net)
+        train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
         exit()
 
