@@ -15,10 +15,10 @@ from torchvision.datasets import VisionDataset
 from sklearn.preprocessing import StandardScaler
 
 class Continuum_reddit(VisionDataset):
-    def __init__(self, root='/data/', name = 'reddit', data_type='train', task_type = 0):
+    def __init__(self, root='/data/', name='reddit', data_type='train', task_type = 0, download=None):
         super(Continuum_reddit, self).__init__(root)
         self.name = name
-        adj_full, adj_train, feats, class_map, role = self.load_data(root+name)
+        adj_full, adj_train, feats, class_map, role = self.load_data(os.path.join(root,name))
 
         self.adj_train = adj_train
         self.adj_full = adj_full

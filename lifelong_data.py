@@ -48,8 +48,7 @@ def performance(loader, net):
     correct, total = 0, 0
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
-            if torch.cuda.is_available():
-                inputs, targets, neighbor = inputs.to(args.device), targets.to(args.device), [item.to(args.device) for item in neighbor]
+            inputs, targets, neighbor = inputs.to(args.device), targets.to(args.device), [item.to(args.device) for item in neighbor]
             outputs = net(inputs, neighbor)
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
