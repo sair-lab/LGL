@@ -38,8 +38,8 @@ from torch.autograd import Variable
 
 from models import LGL
 from lifelong import performance
-from torch_util import count_parameters
 from datasets import Continuum, citation_collate
+from torch_util import count_parameters, EarlyStopScheduler
 
 
 def train(loader, net, criterion, optimizer):
@@ -67,6 +67,9 @@ if __name__ == '__main__':
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, pubmed")
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
+    parser.add_argument("--factor", type=float, default=0.1, help="ReduceLROnPlateau factor")
+    parser.add_argument("--min-lr", type=float, default=0.01, help="minimum lr for ReduceLROnPlateau")
+    parser.add_argument("--patience", type=int, default=2, help="patience of epochs for ReduceLROnPlateau")
     parser.add_argument("--batch-size", type=int, default=10, help="number of minibatch size")
     parser.add_argument("--milestones", type=int, default=15, help="milestones for applying multiplier")
     parser.add_argument("--epochs", type=int, default=20, help="number of training epochs")
@@ -87,7 +90,7 @@ if __name__ == '__main__':
     net = LGL(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[args.milestones], gamma=args.gamma)
+    scheduler = EarlyStopScheduler(optimizer, factor=args.factor, verbose=True, min_lr=args.min_lr, patience=args.patience)
 
     # Training
     print('number of parameters:', count_parameters(net))
@@ -95,15 +98,15 @@ if __name__ == '__main__':
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net, criterion, optimizer)
         test_acc = performance(test_loader, net) # validate
-        scheduler.step()
-        print("epoch: %d, train_loss: %.4f, train_acc: %.2f, val_acc: %.2f" 
+        
+        print("epoch: %d, train_loss: %.4f, train_acc: %.2f, test_acc: %.2f" 
                 % (epoch, train_loss, train_acc, test_acc))
+        
         if test_acc > best_acc:
             print("New best Model, saving...")
-            no_better, best_acc, best_net = 0, test_acc, copy.deepcopy(net)
-        else:
-            no_better += 1
-        if no_better > args.early_stop:
+            best_acc, best_net = test_acc, copy.deepcopy(net)
+
+        if scheduler.step(error=1-test_acc):
             print('Early Stopping!')
             break
 
