@@ -9,13 +9,16 @@ Lifelong Graph Learning
 ---     
 # Training
 
+* Datasets are automatically downloaded during training.
+
 * Data-incremental Tasks
 
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset pubmed
 
-To save your model
+To save your model during training
+
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora --save model_file_location
 
 
@@ -28,7 +31,7 @@ To save your model
 ---
 # Reproduce the results from paper
 
-* Download the pre-trained models from [releases](https://github.com/wang-chen/LGL/releases/download/v1.0/loads.zip).
+* Download the pre-trained models from the [releases](https://github.com/wang-chen/LGL/releases/download/v1.0/loads.zip) Page.
 
 * For data-incremental tasks, e.g.
 
