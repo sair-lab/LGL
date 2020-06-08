@@ -10,6 +10,14 @@ from dgl.data import citegrh
 from itertools  import compress
 from torchvision.datasets import VisionDataset
 
+
+def citation_collate(batch):
+    feature = torch.stack([item[0] for item in batch], dim=0)
+    labels = torch.stack([item[1] for item in batch], dim=0)
+    neighbor = [item[2] for item in batch]
+    return [feature, labels, neighbor]
+
+
 class Continuum(VisionDataset):
     def __init__(self, root='~/.dgl', name='cora', data_type='train', download=True, task_type=0):
         super(Continuum, self).__init__(root)
@@ -63,9 +71,3 @@ class Continuum(VisionDataset):
             with open(data_file, 'wb') as f:
                 torch.save(self.data, data_file)
         self.feat_len, self.num_class = self.data.features.shape[1], self.data.num_labels
-        
-def citation_collate(batch):
-    feature = torch.stack([item[0] for item in batch], dim=0)
-    labels = torch.stack([item[1] for item in batch], dim=0)
-    neighbor = [item[2] for item in batch]
-    return [feature, labels, neighbor]

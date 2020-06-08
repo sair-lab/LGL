@@ -12,6 +12,7 @@ from itertools  import compress
 from torchvision.datasets import VisionDataset
 from sklearn.preprocessing import StandardScaler
 
+
 class ContinuumLS(VisionDataset):
     def __init__(self, root='/data/', name='reddit', data_type='train', task_type = 0, download=None):
         super(ContinuumLS, self).__init__(root)
@@ -42,7 +43,6 @@ class ContinuumLS(VisionDataset):
         return len(self.labels[self.mask])
 
     def __getitem__(self, index):
-        #train all may have no neiborugh
         neighbor_mask = np.append(self.adj_full[self.mask[index]].nonzero()[1],index)
         neighbor = self.features[neighbor_mask]
         return torch.FloatTensor(self.features[self.mask[index]]).unsqueeze(-2), self.labels[self.mask[index]], torch.FloatTensor(neighbor).unsqueeze(-2)
@@ -61,9 +61,3 @@ class ContinuumLS(VisionDataset):
         scaler.fit(train_feats)
         feats = scaler.transform(feats)
         return adj_full, adj_train, feats, class_map, role
-
-    def citation_collate(batch):
-        feature = torch.stack([item[0] for item in batch], dim=0)
-        labels = torch.stack([item[1] for item in batch], dim=0)
-        neighbor = [item[2] for item in batch]
-        return [feature, labels, neighbor]

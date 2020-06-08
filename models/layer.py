@@ -80,17 +80,14 @@ class FeatTrans1d(nn.Module):
     def transform(self, x, adj):
         return self.conv((adj.unsqueeze(1) @ x.unsqueeze(-1)).squeeze(-1)).view(x.size(0), self.out_channels, self.out_features)
 
-    @torch.no_grad()
     def feature_adjacency(self, x, y):
         fadj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
         fadj += fadj.transpose(-2, -1)
         return self.row_normalize(self.sgnroot(fadj))
 
-    @torch.no_grad()
     def sgnroot(self, x):
         return x.sign()*(x.abs().sqrt())
 
-    @torch.no_grad()
     def row_normalize(self, x):
         x = x / (x.abs().sum(1, keepdim=True) + 1e-7)
         x[torch.isnan(x)] = 0
