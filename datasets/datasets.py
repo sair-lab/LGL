@@ -101,18 +101,12 @@ class Citation(VisionDataset):
         self.feat_len, self.num_class = self.data.features.shape[1], self.data.num_labels
 
 
-def citation_collate(batch):
-    feature = torch.stack([item[0] for item in batch], dim=0)
-    labels = torch.stack([item[1] for item in batch], dim=0)
-    neighbor = [item[2] for item in batch]
-    return [feature, labels, neighbor]
-
-
 if __name__ == "__main__":
     '''
     Use example for Citation Dataset 
     '''
     import torch.utils.data as Data
+    from continuum import citation_collate
 
     train_data = Citation(root='/data/datasets', name='Cora', data_type='train', download=True)
     train_loader = Data.DataLoader(dataset=train_data, batch_size=10, shuffle=True, num_workers=0, collate_fn=citation_collate)

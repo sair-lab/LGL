@@ -64,12 +64,11 @@ class FeatTrans1d(nn.Module):
         out_channels (int): number of feature output channels
         adjacency (Tensor): feature adjacency matrix
     '''
-    def __init__(self, in_channels, in_features, out_channels, out_features, bias=True, adjacency=None):
+    def __init__(self, in_channels, in_features, out_channels, out_features):
         super(FeatTrans1d, self).__init__()
         self.out_channels, self.out_features = out_channels, out_features
-        self.register_buffer('adjacency', adjacency)
         # Taking advantage of parallel efficiency of nn.Conv1d
-        self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features)
+        self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features, bias=False)
 
     def forward(self, x, neighbor):
         adj = self.feature_adjacency(x, neighbor)
@@ -80,17 +79,14 @@ class FeatTrans1d(nn.Module):
     def transform(self, x, adj):
         return self.conv((adj.unsqueeze(1) @ x.unsqueeze(-1)).squeeze(-1)).view(x.size(0), self.out_channels, self.out_features)
 
-    @torch.no_grad()
     def feature_adjacency(self, x, y):
         fadj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
         fadj += fadj.transpose(-2, -1)
         return self.row_normalize(self.sgnroot(fadj))
 
-    @torch.no_grad()
     def sgnroot(self, x):
         return x.sign()*(x.abs().sqrt())
 
-    @torch.no_grad()
     def row_normalize(self, x):
         x = x / (x.abs().sum(1, keepdim=True) + 1e-7)
         x[torch.isnan(x)] = 0
