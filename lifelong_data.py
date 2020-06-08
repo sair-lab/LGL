@@ -77,7 +77,7 @@ if __name__ == "__main__":
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
-            
+
         if args.store is not None:
             torch.save(net, args.save)
 

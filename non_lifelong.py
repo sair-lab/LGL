@@ -44,6 +44,7 @@ from torch_util import count_parameters, EarlyStopScheduler
 
 
 def train(loader, net, criterion, optimizer):
+    net.train()
     train_loss, correct, total = 0, 0, 0
     for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
         inputs, targets, neighbor = inputs.to(args.device), targets.to(args.device), [item.to(args.device) for item in neighbor]
@@ -99,10 +100,10 @@ if __name__ == '__main__':
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net, criterion, optimizer)
         test_acc = performance(test_loader, net) # validate
-        
-        print("epoch: %d, train_loss: %.4f, train_acc: %.2f, test_acc: %.2f" 
+
+        print("epoch: %d, train_loss: %.4f, train_acc: %.3f, test_acc: %.3f"
                 % (epoch, train_loss, train_acc, test_acc))
-        
+
         if test_acc > best_acc:
             print("New best Model, copying...")
             best_acc, best_net = test_acc, copy.deepcopy(net)
@@ -112,4 +113,4 @@ if __name__ == '__main__':
             break
 
     train_acc, test_acc = performance(train_loader, best_net), performance(test_loader, best_net)
-    print('train_acc: %.2f, test_acc: %.2f'%(train_acc, test_acc))
+    print('train_acc: %.3f, test_acc: %.3f'%(train_acc, test_acc))

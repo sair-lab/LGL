@@ -60,6 +60,7 @@ class Net(nn.Module):
         return self.classifier(x)
 
     def observe(self, inputs, targets, neighbor):
+        self.train()
         for i in range(self.args.iteration):
             self.optimizer.zero_grad()
             outputs = self.forward(inputs, neighbor)
