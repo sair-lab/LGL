@@ -99,10 +99,10 @@ if __name__ == '__main__':
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net.train(), criterion, optimizer)
         test_acc = performance(test_loader, net.eval()) # validate
-        
+
         print("epoch: %d, train_loss: %.4f, train_acc: %.3f, test_acc: %.3f"
                 % (epoch, train_loss, train_acc, test_acc))
-        
+
         if test_acc > best_acc:
             print("New best Model, copying...")
             best_acc, best_net = test_acc, copy.deepcopy(net)

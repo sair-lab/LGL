@@ -77,9 +77,9 @@ if __name__ == "__main__":
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
-            
+
         if args.store is not None:
             torch.save(net, args.save)
 
-    train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
+    train_acc, test_acc = performance(train_loader, net.eval(), args.device),  performance(test_loader, net.eval(), args.device)
     print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))

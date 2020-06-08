@@ -38,6 +38,7 @@ import torch.nn as nn
 import torch.utils.data as Data
 
 from models import Net
+from models import LifelongLGL
 from datasets import Continuum
 from torch_util import count_parameters
 from datasets import Citation, citation_collate
@@ -86,7 +87,7 @@ if __name__ == "__main__":
         train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
         train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
         net = torch.load(args.load, map_location=args.device)
-        train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
+        train_acc, test_acc = performance(train_loader, net.eval(), args.device),  performance(test_loader, net.eval(), args.device)
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
         exit()
 
@@ -100,7 +101,7 @@ if __name__ == "__main__":
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
-        train_acc, test_acc = performance(incremental_loader, net), performance(test_loader, net)
+        train_acc, test_acc = performance(incremental_loader, net.eval()), performance(test_loader, net.eval())
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
 
     evaluation_metrics = torch.Tensor(evaluation_metrics)
