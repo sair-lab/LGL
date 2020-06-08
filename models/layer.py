@@ -64,12 +64,11 @@ class FeatTrans1d(nn.Module):
         out_channels (int): number of feature output channels
         adjacency (Tensor): feature adjacency matrix
     '''
-    def __init__(self, in_channels, in_features, out_channels, out_features, bias=True, adjacency=None):
+    def __init__(self, in_channels, in_features, out_channels, out_features):
         super(FeatTrans1d, self).__init__()
         self.out_channels, self.out_features = out_channels, out_features
-        self.register_buffer('adjacency', adjacency)
         # Taking advantage of parallel efficiency of nn.Conv1d
-        self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features)
+        self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features, bias=False)
 
     def forward(self, x, neighbor):
         adj = self.feature_adjacency(x, neighbor)
