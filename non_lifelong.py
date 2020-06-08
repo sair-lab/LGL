@@ -44,6 +44,7 @@ from torch_util import count_parameters, EarlyStopScheduler
 
 
 def train(loader, net, criterion, optimizer):
+    net.train()
     train_loss, correct, total = 0, 0, 0
     for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
         inputs, targets, neighbor = inputs.to(args.device), targets.to(args.device), [item.to(args.device) for item in neighbor]
@@ -97,8 +98,8 @@ if __name__ == '__main__':
     print('number of parameters:', count_parameters(net))
     best_acc = 0
     for epoch in range(args.epochs):
-        train_loss, train_acc = train(train_loader, net.train(), criterion, optimizer)
-        test_acc = performance(test_loader, net.eval()) # validate
+        train_loss, train_acc = train(train_loader, net, criterion, optimizer)
+        test_acc = performance(test_loader, net) # validate
 
         print("epoch: %d, train_loss: %.4f, train_acc: %.3f, test_acc: %.3f"
                 % (epoch, train_loss, train_acc, test_acc))
@@ -111,5 +112,5 @@ if __name__ == '__main__':
             print('Early Stopping!')
             break
 
-    train_acc, test_acc = performance(train_loader, best_net.eval()), performance(test_loader, best_net.eval())
+    train_acc, test_acc = performance(train_loader, best_net), performance(test_loader, best_net)
     print('train_acc: %.3f, test_acc: %.3f'%(train_acc, test_acc))

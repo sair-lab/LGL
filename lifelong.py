@@ -48,6 +48,7 @@ warnings.filterwarnings("ignore")
 
 
 def performance(loader, net, device='cuda:0'):
+    net.eval()
     correct, total = 0, 0
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
         train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
         net = torch.load(args.load, map_location=args.device)
-        train_acc, test_acc = performance(train_loader, net.eval(), args.device),  performance(test_loader, net.eval(), args.device)
+        train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
         exit()
 
@@ -101,7 +102,7 @@ if __name__ == "__main__":
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
-        train_acc, test_acc = performance(incremental_loader, net.eval()), performance(test_loader, net.eval())
+        train_acc, test_acc = performance(incremental_loader, net), performance(test_loader, net)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
 
     evaluation_metrics = torch.Tensor(evaluation_metrics)

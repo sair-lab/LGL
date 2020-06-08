@@ -81,5 +81,5 @@ if __name__ == "__main__":
         if args.store is not None:
             torch.save(net, args.save)
 
-    train_acc, test_acc = performance(train_loader, net.eval(), args.device),  performance(test_loader, net.eval(), args.device)
+    train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
     print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
