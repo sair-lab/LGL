@@ -66,7 +66,7 @@ class FeatTrans1d(nn.Module):
     '''
     def __init__(self, in_channels, in_features, out_channels, out_features, bias=True, adjacency=None):
         super(FeatTrans1d, self).__init__()
-        self.out_features = out_features
+        self.out_channels, self.out_features = out_channels, out_features
         self.register_buffer('adjacency', adjacency)
         # Taking advantage of parallel efficiency of nn.Conv1d
         self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features)
@@ -78,7 +78,7 @@ class FeatTrans1d(nn.Module):
         return x, neighbor
 
     def transform(self, x, adj):
-        return self.conv((adj.unsqueeze(1) @ x.unsqueeze(-1)).squeeze(-1)).view(x.size(0), -1, self.out_features)
+        return self.conv((adj.unsqueeze(1) @ x.unsqueeze(-1)).squeeze(-1)).view(x.size(0), self.out_channels, self.out_features)
 
     @torch.no_grad()
     def feature_adjacency(self, x, y):

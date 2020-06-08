@@ -56,19 +56,17 @@ class FGN(nn.Module):
 class LGL(nn.Module):
     def __init__(self, feat_len, num_class, hidden=2):
         super(LGL, self).__init__()
-        c = [1, 5, 10]
+        c = [1, 4, 32]
         f = [feat_len, 16, 1]
         self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
         self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(c[2]*f[2], num_class))
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(c[2]*f[2], num_class))
 
     def forward(self, x, neighbor):
         x, neighbor = self.feat1(x, neighbor)
-        x = self.acvt1(x)
+        x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
         x, neighbor = self.feat2(x, neighbor)
         x = self.acvt2(x)
         return self.classifier(x)
