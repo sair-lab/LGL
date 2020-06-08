@@ -45,7 +45,8 @@ class ContinuumLS(VisionDataset):
 
     def __getitem__(self, index):
         #train all may have no neiborugh
-        neighbor = self.features[self.adj_full[self.mask[index]].nonzero()[1]]
+        neighbor_mask = np.append(self.adj_full[self.mask[0]].nonzero()[1],index)
+        neighbor = self.features[neighbor_mask]
         return torch.FloatTensor(self.features[self.mask[index]]).unsqueeze(-2), self.labels[self.mask[index]], torch.FloatTensor(neighbor).unsqueeze(-2)
 
 
