@@ -36,8 +36,6 @@ class ContinuumLS(VisionDataset):
             self.mask = role["te"]
         else:
             raise RuntimeError('data type {} wrong'.format(data_type))
-
-
         print('{} Dataset for {} Loaded.'.format(self.name, data_type))
 
     def __len__(self):
@@ -48,7 +46,6 @@ class ContinuumLS(VisionDataset):
         neighbor = self.features[self.adj_full[self.mask[index]].nonzero()[1]]
         return torch.FloatTensor(self.features[self.mask[index]]).unsqueeze(-2), self.labels[self.mask[index]], torch.FloatTensor(neighbor).unsqueeze(-2)
 
-
     def load_data(self, prefix, normalize=True):
         adj_full = scipy.sparse.load_npz('{}/adj_full.npz'.format(prefix)).astype(np.bool)
         adj_train = scipy.sparse.load_npz('{}/adj_train.npz'.format(prefix)).astype(np.bool)
@@ -57,13 +54,11 @@ class ContinuumLS(VisionDataset):
         class_map = json.load(open('{}/class_map.json'.format(prefix)))
         class_map = {int(k):v for k,v in class_map.items()}
         assert len(class_map) == feats.shape[0]
-        # ---- normalize feats ----
         train_nodes = np.array(list(set(adj_train.nonzero()[0])))
         train_feats = feats[train_nodes]
         scaler = StandardScaler()
         scaler.fit(train_feats)
         feats = scaler.transform(feats)
-        # -------------------------
         return adj_full, adj_train, feats, class_map, role
 
     def citation_collate(batch):
