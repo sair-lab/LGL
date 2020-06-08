@@ -25,10 +25,12 @@ class ContinuumLS(VisionDataset):
         self.features = feats
         self.feat_len = feats.shape[1]
         self.labels = torch.LongTensor(list(class_map.values()))
-        self.num_class = int(max(self.labels) -min(self.labels))+1
+        self.num_class = int(torch.max(self.labels) - torch.min(self.labels))+1
 
         if data_type == 'train':
             self.mask = role["tr"]
+        elif data_type == 'mini':
+            self.mask = role["tr"][:100]
         elif data_type == 'incremental':
             self.mask = list((np.array(val_data.labels)[val_data.mask]==task_type).nonzero()[0])
         elif data_type == 'val':
@@ -37,7 +39,8 @@ class ContinuumLS(VisionDataset):
             self.mask = role["te"]
         else:
             raise RuntimeError('data type {} wrong'.format(data_type))
-        print('{} Dataset for {} Loaded.'.format(self.name, data_type))
+        
+        print('{} Dataset for {} Loaded with featlen {} and size {}.'.format(self.name, data_type, self.feat_len, len( self.mask)))
 
     def __len__(self):
         return len(self.labels[self.mask])
