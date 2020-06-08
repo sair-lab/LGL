@@ -71,6 +71,29 @@ class LGL(nn.Module):
         x = self.acvt2(x)
         return self.classifier(x)
 
+class LSLGL(nn.Module):
+    def __init__(self, feat_len, num_class, hidden=2):
+        super(LGL, self).__init__()
+        c = [1, 4, 8, 32]
+        f = [feat_len, 64, 16, 1]
+        self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
+        self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
+        self.feat3 = FeatTrans1d(in_channels=c[2], in_features=f[2], out_channels=c[3], out_features=f[3])
+        self.acvt3 = nn.Sequential(nn.BatchNorm1d(c[3]), nn.Softsign())
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(c[3]*f[3], num_class))
+
+    def forward(self, x, neighbor):
+        x, neighbor = self.feat1(x, neighbor)
+        x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
+        x, neighbor = self.feat2(x, neighbor)
+        x, neighbor = self.acvt2(x), [self.acvt1(n) for n in neighbor]
+        x, neighbor = self.feat3(x, neighbor)
+        x = self.acvt3(x)
+        return self.classifier(x)
+
+
 
 if __name__ == "__main__":
     '''
