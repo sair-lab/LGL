@@ -36,10 +36,11 @@ import torch.nn as nn
 import torch.utils.data as Data
 from torch.autograd import Variable
 
-from models import LGL
+from models import LGL, PlainNet
 from lifelong import performance
 from datasets import Continuum, citation_collate
 from torch_util import count_parameters, EarlyStopScheduler
+# from datasets import Continuum_reddit as Continuum
 
 
 def train(loader, net, criterion, optimizer):
@@ -94,7 +95,7 @@ if __name__ == '__main__':
 
     # Training
     print('number of parameters:', count_parameters(net))
-    no_better, best_acc = 0, 0
+    best_acc = 0
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net, criterion, optimizer)
         test_acc = performance(test_loader, net) # validate
@@ -103,7 +104,7 @@ if __name__ == '__main__':
                 % (epoch, train_loss, train_acc, test_acc))
         
         if test_acc > best_acc:
-            print("New best Model, saving...")
+            print("New best Model, copying...")
             best_acc, best_net = test_acc, copy.deepcopy(net)
 
         if scheduler.step(error=1-test_acc):
