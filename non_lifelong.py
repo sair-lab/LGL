@@ -97,10 +97,10 @@ if __name__ == '__main__':
     print('number of parameters:', count_parameters(net))
     best_acc = 0
     for epoch in range(args.epochs):
-        train_loss, train_acc = train(train_loader, net, criterion, optimizer)
-        test_acc = performance(test_loader, net) # validate
+        train_loss, train_acc = train(train_loader, net.train(), criterion, optimizer)
+        test_acc = performance(test_loader, net.eval()) # validate
         
-        print("epoch: %d, train_loss: %.4f, train_acc: %.2f, test_acc: %.2f" 
+        print("epoch: %d, train_loss: %.4f, train_acc: %.3f, test_acc: %.3f"
                 % (epoch, train_loss, train_acc, test_acc))
         
         if test_acc > best_acc:
@@ -111,5 +111,5 @@ if __name__ == '__main__':
             print('Early Stopping!')
             break
 
-    train_acc, test_acc = performance(train_loader, best_net), performance(test_loader, best_net)
-    print('train_acc: %.2f, test_acc: %.2f'%(train_acc, test_acc))
+    train_acc, test_acc = performance(train_loader, best_net.eval()), performance(test_loader, best_net.eval())
+    print('train_acc: %.3f, test_acc: %.3f'%(train_acc, test_acc))
