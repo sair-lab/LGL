@@ -70,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
     parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
+    parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
@@ -92,7 +93,8 @@ if __name__ == "__main__":
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
         exit()
 
-    net = LifelongLGL(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
+    Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
+    net = Model(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
     for i in range(test_data.num_class):
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
@@ -109,6 +111,9 @@ if __name__ == "__main__":
     print('        | task | sample | train_acc | test_acc |')
     print(evaluation_metrics)
     print('number of parameters:', count_parameters(net))
+
+    if args.save is not None:
+        torch.save(net, args.save)
 
     if args.plot:
         import matplotlib.pyplot as plt

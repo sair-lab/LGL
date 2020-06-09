@@ -91,7 +91,8 @@ if __name__ == '__main__':
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
     # Models
-    net = LGL(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
+    Model = PlainNet if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LGL
+    net = Model(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum)
     scheduler = EarlyStopScheduler(optimizer, factor=args.factor, verbose=True, min_lr=args.min_lr, patience=args.patience)
@@ -117,4 +118,4 @@ if __name__ == '__main__':
     print('train_acc: %.3f, test_acc: %.3f'%(train_acc, test_acc))
 
     if args.save:
-        torch.save(net, args.save)
+        torch.save(best_net, args.save)

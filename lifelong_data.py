@@ -36,9 +36,9 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 
-from models import Net
 from datasets import continuum
 from lifelong import performance
+from models import Net, LifelongLGL
 from torch_util import count_parameters
 from datasets import Citation, citation_collate
 
@@ -51,9 +51,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Feature Graph Networks')
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
-    parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
+    parser.add_argument("--dataset", type=str, default='flickr', help="cora, citeseer, or pubmed")
     parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
-    parser.add_argument("--store", type=str, default=None, help="model file to save")
+    parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
@@ -72,13 +72,14 @@ if __name__ == "__main__":
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
     else:
-        net = Net(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
+        Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
+        net = Model(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
-        if args.store is not None:
+        if args.save is not None:
             torch.save(net, args.save)
 
     train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
