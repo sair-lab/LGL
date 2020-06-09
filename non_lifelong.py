@@ -36,9 +36,9 @@ import torch.nn as nn
 import torch.utils.data as Data
 from torch.autograd import Variable
 
-from models import LGL, PlainNet
+from models import LGL, PlainNet, LSLGL
 from lifelong import performance
-from datasets import Continuum, citation_collate
+from datasets import Continuum, ContinuumLS, citation_collate
 from torch_util import count_parameters, EarlyStopScheduler
 # from datasets import ContinuumLS as Continuum
 
@@ -68,6 +68,7 @@ if __name__ == '__main__':
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, pubmed")
+    parser.add_argument("--save", type=str, default='', help="cora, citeseer, pubmed")
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
     parser.add_argument("--factor", type=float, default=0.1, help="ReduceLROnPlateau factor")
     parser.add_argument("--min-lr", type=float, default=0.01, help="minimum lr for ReduceLROnPlateau")
@@ -79,17 +80,26 @@ if __name__ == '__main__':
     parser.add_argument("--momentum", type=float, default=0, help="momentum of the optimizer")
     parser.add_argument("--gamma", type=float, default=0.1, help="learning rate multiplier")
     parser.add_argument('--seed', type=int, default=0, help='Random seed.')
+    parser.add_argument("-l", "--largescale", action="store_true", help="continue learning")
+
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
     # Datasets
-    train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
-    test_data = Continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    if args.largescale:
+        train_data = ContinuumLS(root=args.data_root, name=args.dataset, data_type='train')
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+        test_data = ContinuumLS(root=args.data_root, name=args.dataset, data_type='test')
+        test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+        net = LSLGL(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
+    else:
+        train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+        test_data = Continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
+        test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+        net = LGL(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
 
     # Models
-    net = LGL(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum)
     scheduler = EarlyStopScheduler(optimizer, factor=args.factor, verbose=True, min_lr=args.min_lr, patience=args.patience)
@@ -99,8 +109,7 @@ if __name__ == '__main__':
     best_acc = 0
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net, criterion, optimizer)
-        test_acc = performance(test_loader, net) # validate
-
+        test_acc = performance(test_loader, net, args.device) # validate
         print("epoch: %d, train_loss: %.4f, train_acc: %.3f, test_acc: %.3f"
                 % (epoch, train_loss, train_acc, test_acc))
 
@@ -112,5 +121,8 @@ if __name__ == '__main__':
             print('Early Stopping!')
             break
 
-    train_acc, test_acc = performance(train_loader, best_net), performance(test_loader, best_net)
+    train_acc, test_acc = performance(train_loader, best_net, args.device), performance(test_loader, best_net, args.device)
     print('train_acc: %.3f, test_acc: %.3f'%(train_acc, test_acc))
+    
+    if args.save:
+        torch.save(net, args.save)
