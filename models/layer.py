@@ -62,7 +62,8 @@ class FeatTrans1d(nn.Module):
     Args:
         in_channels (int): number of feature input channels
         out_channels (int): number of feature output channels
-        adjacency (Tensor): feature adjacency matrix
+        in_features (int): dimension of input features 
+        out_features (int): dimension of output features
     '''
     def __init__(self, in_channels, in_features, out_channels, out_features):
         super(FeatTrans1d, self).__init__()
