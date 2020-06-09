@@ -98,7 +98,7 @@ if __name__ == '__main__':
     best_acc = 0
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net, criterion, optimizer)
-        test_acc = performance(test_loader, net) # validate
+        test_acc = performance(test_loader, net, args.device) # validate
         
         print("epoch: %d, train_loss: %.4f, train_acc: %.2f, test_acc: %.2f" 
                 % (epoch, train_loss, train_acc, test_acc))
@@ -111,5 +111,5 @@ if __name__ == '__main__':
             print('Early Stopping!')
             break
 
-    train_acc, test_acc = performance(train_loader, best_net), performance(test_loader, best_net)
+    train_acc, test_acc = performance(train_loader, best_net, args.device), performance(test_loader, best_net, args.device)
     print('train_acc: %.2f, test_acc: %.2f'%(train_acc, test_acc))

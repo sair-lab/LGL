@@ -46,7 +46,7 @@ sys.path.append('models')
 warnings.filterwarnings("ignore")
 
 
-def performance(loader, net, device='cuda:0'):
+def performance(loader, net, device):
     correct, total = 0, 0
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
@@ -100,7 +100,7 @@ if __name__ == "__main__":
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
-        train_acc, test_acc = performance(incremental_loader, net), performance(test_loader, net)
+        train_acc, test_acc = performance(incremental_loader, net, args.device), performance(test_loader, net, args.device)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
 
     evaluation_metrics = torch.Tensor(evaluation_metrics)
