@@ -67,7 +67,7 @@ if __name__ == '__main__':
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, pubmed")
-    parser.add_argument("--save", type=str, default='', help="cora, citeseer, pubmed")
+    parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
     parser.add_argument("--factor", type=float, default=0.1, help="ReduceLROnPlateau factor")
     parser.add_argument("--min-lr", type=float, default=0.01, help="minimum lr for ReduceLROnPlateau")
@@ -78,9 +78,7 @@ if __name__ == '__main__':
     parser.add_argument("--early-stop", type=int, default=5, help="number of epochs for early stop training")
     parser.add_argument("--momentum", type=float, default=0, help="momentum of the optimizer")
     parser.add_argument("--gamma", type=float, default=0.1, help="learning rate multiplier")
-    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
-    parser.add_argument("-l", "--largescale", action="store_true", help="continue learning")
-
+    parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
@@ -117,5 +115,5 @@ if __name__ == '__main__':
     train_acc, test_acc = performance(train_loader, best_net, args.device), performance(test_loader, best_net, args.device)
     print('train_acc: %.3f, test_acc: %.3f'%(train_acc, test_acc))
 
-    if args.save:
+    if args.save is not None:
         torch.save(best_net, args.save)

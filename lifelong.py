@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
     parser.add_argument("--momentum", type=float, default=0, help="momentum of SGD optimizer")
     parser.add_argument("--adj-momentum", type=float, default=0.9, help="momentum of the feature adjacency")
-    parser.add_argument('--seed', type=int, default=0, help='Random seed.')
+    parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
