@@ -20,9 +20,10 @@ def citation_collate(batch):
 
 
 def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, download=True):
-    if name.lower() in ['reddit', 'flickr']:
+    name = name.lower()
+    if name in ['reddit', 'flickr']:
         return ContinuumLS(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
-    elif name.lower() in ['cora', 'citeseer', 'pubmed']:
+    elif name in ['cora', 'citeseer', 'pubmed']:
         return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     else:
         raise RuntimeError('data type {} wrong'.format(data_type))

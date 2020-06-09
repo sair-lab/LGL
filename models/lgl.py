@@ -124,16 +124,3 @@ class LifelongLGL(LGL):
             self.targets = self.targets[mask]
             self.memory_order = self.memory_order[mask]
             self.neighbor = [self.neighbor[i] for i in mask.nonzero()]
-
-
-if __name__ == "__main__":
-    '''
-    Debug script for FGN model 
-    '''
-    n_feature, n_channel, n_batch = 1433, 1, 3
-    feature = torch.FloatTensor(n_batch, n_channel, n_feature).random_()
-    adjacency = torch.FloatTensor(n_feature, n_feature).random_()
-
-    model = FGN(adjacency)
-    label = model(feature)
-    print('Input: {}; Output: {}'.format(feature.shape, label.shape))
