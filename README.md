@@ -3,7 +3,7 @@ Lifelong Graph Learning
 
 # Dependencies
 
-* Python 3
+* Python 3.7
 * [PyTorch v1.5+](https://pytorch.org/get-started)
 * [DGL v0.4+](https://www.dgl.ai/pages/start.html)
 
@@ -51,14 +51,14 @@ Lifelong Graph Learning
 
      |     Memory    |         Cora  |  Citeseer     |    Pubmed     |
      | :-----------: | :-----------: | :-----------: | :-----------: |
-     |       100     |     0.837     |     0.754     |     0.886     |
-     |       500     |     0.887     |     0.742     |     0.884     |
+     |       100     |     0.830     |     0.752     |     0.884     |
+     |       500     |     0.890     |     0.740     |     0.882     |
 
 * Class-incremental Tasks
 
      |     Memory    |         Cora  |  Citeseer     |    Pubmed     |
      | :-----------: | :-----------: | :-----------: | :-----------: |
-     |       200     |     0.823     |      0.712    |     0.830     |
-     |       500     |     0.883     |     0.746     |     0.876     |
+     |       200     |     0.827     |     0.712     |     0.826     |
+     |       500     |     0.880     |     0.746     |     0.876     |
 
 * Note that the performan reported in the paper is an average of 10 runs, while the above is only one trial.
