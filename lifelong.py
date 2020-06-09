@@ -92,7 +92,7 @@ if __name__ == "__main__":
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
         exit()
 
-    net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
+    net = LifelongLGL(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
     for i in range(test_data.num_class):
         incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)

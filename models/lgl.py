@@ -40,7 +40,7 @@ class LGL(nn.Module):
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
         self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
-        self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(), nn.Linear(c[2]*f[2], num_class))
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
 
     def forward(self, x, neighbor):
         x, neighbor = self.feat1(x, neighbor)

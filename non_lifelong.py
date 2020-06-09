@@ -40,7 +40,7 @@ from models import LGL, PlainNet
 from lifelong import performance
 from datasets import Continuum, citation_collate
 from torch_util import count_parameters, EarlyStopScheduler
-# from datasets import Continuum_reddit as Continuum
+# from datasets import ContinuumLS as Continuum
 
 
 def train(loader, net, criterion, optimizer):
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
     parser.add_argument("--factor", type=float, default=0.1, help="ReduceLROnPlateau factor")
     parser.add_argument("--min-lr", type=float, default=0.01, help="minimum lr for ReduceLROnPlateau")
-    parser.add_argument("--patience", type=int, default=2, help="patience of epochs for ReduceLROnPlateau")
+    parser.add_argument("--patience", type=int, default=5, help="patience for Early Stop")
     parser.add_argument("--batch-size", type=int, default=10, help="number of minibatch size")
     parser.add_argument("--milestones", type=int, default=15, help="milestones for applying multiplier")
     parser.add_argument("--epochs", type=int, default=20, help="number of training epochs")
