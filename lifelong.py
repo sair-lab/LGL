@@ -38,6 +38,7 @@ import torch.nn as nn
 import torch.utils.data as Data
 
 from models import Net
+from models import LifelongLGL
 from datasets import Continuum
 from torch_util import count_parameters
 from datasets import Citation, citation_collate
@@ -47,6 +48,7 @@ warnings.filterwarnings("ignore")
 
 
 def performance(loader, net, device):
+    net.eval()
     correct, total = 0, 0
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
