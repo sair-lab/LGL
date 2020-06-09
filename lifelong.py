@@ -39,7 +39,7 @@ import torch.utils.data as Data
 
 from models import Net
 from models import LifelongLGL
-from datasets import Continuum
+from datasets import continuum
 from torch_util import count_parameters
 from datasets import Citation, citation_collate
 
@@ -81,11 +81,11 @@ if __name__ == "__main__":
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
-    test_data = Continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
+    test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
     if args.load is not None:
-        train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
+        train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
         train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
         net = torch.load(args.load, map_location=args.device)
         train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     net = LifelongLGL(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
     for i in range(test_data.num_class):
-        incremental_data = Continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
+        incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
         incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)

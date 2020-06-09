@@ -37,7 +37,7 @@ import torch.nn as nn
 import torch.utils.data as Data
 
 from models import Net
-from datasets import Continuum
+from datasets import continuum
 from lifelong import performance
 from torch_util import count_parameters
 from datasets import Citation, citation_collate
@@ -64,9 +64,9 @@ if __name__ == "__main__":
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
-    train_data = Continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
+    train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
     train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
-    test_data = Continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
+    test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
 
     if args.load is not None:

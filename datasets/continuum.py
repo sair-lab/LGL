@@ -9,6 +9,7 @@ from dgl import DGLGraph
 from dgl.data import citegrh
 from itertools  import compress
 from torchvision.datasets import VisionDataset
+from .continuumLS import ContinuumLS
 
 
 def citation_collate(batch):
@@ -16,6 +17,15 @@ def citation_collate(batch):
     labels = torch.stack([item[1] for item in batch], dim=0)
     neighbor = [item[2] for item in batch]
     return [feature, labels, neighbor]
+
+
+def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, download=True):
+    if name.lower() in ['reddit', 'flickr']:
+        return ContinuumLS(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
+    elif name.lower() in ['cora', 'citeseer', 'pubmed']:
+        return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
+    else:
+        raise RuntimeError('data type {} wrong'.format(data_type))
 
 
 class Continuum(VisionDataset):
