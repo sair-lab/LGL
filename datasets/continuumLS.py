@@ -32,7 +32,8 @@ class ContinuumLS(VisionDataset):
         elif data_type == 'mini':
             self.mask = role["tr"][:100]
         elif data_type == 'incremental':
-            self.mask = list((np.array(val_data.labels)[val_data.mask]==task_type).nonzero()[0])
+            self.mask = role["tr"]
+            self.mask = list((np.array(self.labels)[self.mask]==task_type).nonzero()[0])
         elif data_type == 'val':
             self.mask = role["va"]
         elif data_type == 'test':
