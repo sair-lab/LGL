@@ -51,7 +51,7 @@ class LGL(nn.Module):
 
 class LSLGL(nn.Module):
     def __init__(self, feat_len, num_class, hidden=2):
-        super(LGL, self).__init__()
+        super(LSLGL, self).__init__()
         c = [1, 4, 8, 32]
         f = [feat_len, 64, 16, 1]
         self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
@@ -66,7 +66,7 @@ class LSLGL(nn.Module):
         x, neighbor = self.feat1(x, neighbor)
         x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
         x, neighbor = self.feat2(x, neighbor)
-        x, neighbor = self.acvt2(x), [self.acvt1(n) for n in neighbor]
+        x, neighbor = self.acvt2(x), [self.acvt2(n) for n in neighbor]
         x, neighbor = self.feat3(x, neighbor)
         x = self.acvt3(x)
         return self.classifier(x)
