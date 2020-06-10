@@ -12,7 +12,7 @@ from torchvision.datasets import VisionDataset
 from .continuumLS import ContinuumLS
 
 
-def citation_collate(batch):
+def graph_collate(batch):
     feature = torch.stack([item[0] for item in batch], dim=0)
     labels = torch.stack([item[1] for item in batch], dim=0)
     neighbor = [item[2] for item in batch]

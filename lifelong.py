@@ -40,8 +40,8 @@ import torch.utils.data as Data
 from models import Net
 from models import LifelongLGL
 from datasets import continuum
+from datasets import graph_collate
 from torch_util import count_parameters
-from datasets import Citation, citation_collate
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
@@ -83,11 +83,11 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
 
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
 
     if args.load is not None:
         train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
         net = torch.load(args.load, map_location=args.device)
         train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     evaluation_metrics = []
     for i in range(test_data.num_class):
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
-        incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=citation_collate)
+        incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]

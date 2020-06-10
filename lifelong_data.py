@@ -38,9 +38,9 @@ import torch.utils.data as Data
 
 from datasets import continuum
 from lifelong import performance
+from datasets import graph_collate
 from models import Net, LifelongLGL
 from torch_util import count_parameters
-from datasets import Citation, citation_collate
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
@@ -65,9 +65,9 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
 
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
 
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)

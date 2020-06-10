@@ -38,7 +38,7 @@ from torch.autograd import Variable
 
 from models import LGL, PlainNet
 from lifelong import performance
-from datasets import continuum, citation_collate
+from datasets import continuum, graph_collate
 from torch_util import count_parameters, EarlyStopScheduler
 
 
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Feature Graph Networks')
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
-    parser.add_argument("--dataset", type=str, default='flickr', help="cora, citeseer, pubmed")
+    parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, pubmed")
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
@@ -85,9 +85,9 @@ if __name__ == '__main__':
 
     # Datasets
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=citation_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
 
     # Models
     Model = PlainNet if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LGL
