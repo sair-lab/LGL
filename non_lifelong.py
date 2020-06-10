@@ -66,9 +66,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Feature Graph Networks')
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
-    parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, pubmed")
+    parser.add_argument("--dataset", type=str, default='flickr', help="cora, citeseer, pubmed")
     parser.add_argument("--save", type=str, default=None, help="model file to save")
-    parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
+    parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
+    parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--factor", type=float, default=0.1, help="ReduceLROnPlateau factor")
     parser.add_argument("--min-lr", type=float, default=0.01, help="minimum lr for ReduceLROnPlateau")
     parser.add_argument("--patience", type=int, default=5, help="patience for Early Stop")
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     Model = PlainNet if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LGL
     net = Model(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum)
+    exec('optimizer = torch.optim.%s(net.parameters(), lr=%f)'%(args.optm, args.lr))
     scheduler = EarlyStopScheduler(optimizer, factor=args.factor, verbose=True, min_lr=args.min_lr, patience=args.patience)
 
     # Training

@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Feature Graph Networks')
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
-    parser.add_argument("--dataset", type=str, default='flickr', help="cora, citeseer, or pubmed")
+    parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
     parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")

@@ -34,7 +34,7 @@ from models.layer import FeatBrd1d, FeatTrans1d
 class LGL(nn.Module):
     def __init__(self, feat_len, num_class):
         super(LGL, self).__init__()
-        c = [1, 8, 32]
+        c = [1, 4, 32]
         f = [feat_len, 16, 1]
         self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
