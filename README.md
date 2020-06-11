@@ -72,4 +72,11 @@ Lifelong Graph Learning
      |       200     |     0.827     |     0.712     |     0.826     |
      |       500     |     0.880     |     0.746     |     0.876     |
 
+* Flickr
+
+     |     Memory       |         0     |        10     |        20     |
+     | :-----------:    | :-----------: | :-----------: | :-----------: |
+     | Data-incremental |     0.475     |     0.471     |     0.470     |
+     | Class-incremental|     0.479     |     0.476     |     0.459     |
+
 * Note that the performan reported in the paper is an average of 10 runs, while the above is only one trial.
