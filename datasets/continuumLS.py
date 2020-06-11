@@ -10,7 +10,7 @@ from dgl import DGLGraph
 from dgl.data import citegrh
 from itertools  import compress
 from torchvision.datasets import VisionDataset
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
 class ContinuumLS(VisionDataset):
@@ -61,7 +61,7 @@ class ContinuumLS(VisionDataset):
         assert len(class_map) == feats.shape[0]
         train_nodes = np.array(list(set(adj_train.nonzero()[0])))
         train_feats = feats[train_nodes]
-        scaler = StandardScaler()
+        scaler = MinMaxScaler()
         scaler.fit(train_feats)
         feats = scaler.transform(feats)
         return adj_full, adj_train, feats, class_map, role
