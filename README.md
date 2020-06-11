@@ -12,9 +12,9 @@ Lifelong Graph Learning
 
 * Citation datasets (Cora, Citeseer, and Pubmed) are automatically downloaded before training.
 
-* Download Flickr dataset from the [v1.1 release page](https://github.com/wang-chen/LGL/releases/download/v1.1/flickr.zip) and put it in a folder.
+* Default dataset (download) location is '/data/datasets', you may change it via args '--data-root [data_location]'.
 
-* Default dataset (download) location is '/data/datasets', please create it or spefify it via args '--data-root data_location'.
+* Download Flickr dataset from the [v1.1 release page](https://github.com/wang-chen/LGL/releases/download/v1.1/flickr.zip) and put it in the [data_location] folder.
 
 * Data-incremental Tasks
 
@@ -33,6 +33,34 @@ Lifelong Graph Learning
 * To save your model during training
 
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora --save model_file_location
+
+* More arguments you can speficy:
+
+        usage: lifelong.py [-h] [--device DEVICE] [--data-root DATA_ROOT]
+                           [--dataset DATASET] [--load LOAD] [--save SAVE]
+                           [--optm OPTM] [--lr LR] [--batch-size BATCH_SIZE]
+                           [--iteration ITERATION] [--memory-size MEMORY_SIZE]
+                           [--seed SEED] [-p]
+
+        Feature Graph Networks
+
+        optional arguments:
+          -h, --help            show this help message and exit
+          --device DEVICE       cuda or cpu, default: cuda:0
+          --data-root DATA_ROOT
+                                dataset location
+          --dataset DATASET     cora, citeseer, or pubmed
+          --load LOAD           load pretrained model file
+          --save SAVE           model file to save
+          --optm OPTM           SGD or Adam
+          --lr LR               learning rate
+          --batch-size BATCH_SIZE
+                                minibatch size
+          --iteration ITERATION
+                                number of training iteration
+          --memory-size MEMORY_SIZE
+                                number of samples
+          --seed SEED           Random seed.
 
 ---
 # Reproduce the results from paper
