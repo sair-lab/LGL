@@ -10,39 +10,34 @@ Lifelong Graph Learning
 ---     
 # Training
 
-* Datasets are automatically downloaded during training.
+* Citation datasets (Cora, Citeseer, and Pubmed) are automatically downloaded before training.
+
+* Download Flickr dataset from the [v1.1 release page](https://github.com/wang-chen/LGL/releases/download/v1.1/flickr.zip) and put it in a folder.
+
+* Default dataset (download) location is '/data/datasets', please create it or spefify it via args '--data-root data_location'.
 
 * Data-incremental Tasks
 
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset pubmed
-
-* To save your model during training
-
-        python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora --save model_file_location
+        python lifelong_data.py --lr 0.001 --batch-size 10 --optm Adam --dataset flickr --data-root [data_location]
 
 * Class-incremental Tasks
 
         python lifelong.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong.py --lr 0.01 --batch-size 10 --dataset pubmed
-        
-## Flickr dataset
-* Download from the [Google Drive Floder](https://drive.google.com/drive/folders/18iM-9cvCFCdqJIzwsy5AFJgdvC45GeA5?usp=sharing).
+        python lifelong.py --lr 0.001 --batch-size 10 --optm Adam --dataset flickr --data-root [data_location]
 
-* Data-incremental Tasks
+* To save your model during training
 
-        python lifelong.py --lr 0.001 --batch-size 10 --optm Adam --dataset pubmed --data-root [data_location] 
-        
-* Class-incremental Tasks
-
-        python lifelong_data.py --lr 0.001 --batch-size 10 --optm Adam --dataset pubmed --data-root [data_location]
+        python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora --save model_file_location
 
 ---
 # Reproduce the results from paper
 
-* Download the pre-trained models from the [releases](https://github.com/wang-chen/LGL/releases/download/v1.0/loads.zip) Page.
+* Download the pre-trained models from the [release page](https://github.com/wang-chen/LGL/releases/download/v1.1/loads.zip) and extract it into a folder named 'loads'.
 
 * To reproduce all results, you may simply run:
 
@@ -79,4 +74,4 @@ Lifelong Graph Learning
      | Data-incremental |     0.475     |     0.471     |     0.470     |
      | Class-incremental|     0.479     |     0.476     |     0.459     |
 
-* Note that the performan reported in the paper is an average of 10 runs, while the above is only one trial.
+* Note that the performance reported in the paper is an average of 10 runs, while the above is only one trial.
