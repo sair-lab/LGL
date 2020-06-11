@@ -27,6 +27,17 @@ Lifelong Graph Learning
         python lifelong.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong.py --lr 0.01 --batch-size 10 --dataset pubmed
+        
+## Flickr dataset
+* Download from the [Google Drive Floder](https://drive.google.com/drive/folders/18iM-9cvCFCdqJIzwsy5AFJgdvC45GeA5?usp=sharing).
+
+* Data-incremental Tasks
+
+        python lifelong.py --lr 0.001 --batch-size 10 --optm Adam --dataset pubmed --data-root [data_location] 
+        
+* Class-incremental Tasks
+
+        python lifelong_data.py --lr 0.001 --batch-size 10 --optm Adam --dataset pubmed --data-root [data_location]
 
 ---
 # Reproduce the results from paper
