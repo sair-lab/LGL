@@ -62,7 +62,7 @@ class LifelongLGL(LGL):
         self.memory_order = torch.LongTensor()
         self.memory_size = self.args.memory_size
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.parameters(), lr=args.lr, momentum=args.momentum)
+        exec('self.optimizer = torch.optim.%s(self.parameters(), lr=%f)'%(args.optm, args.lr))
 
     def observe(self, inputs, targets, neighbor):
         self.train()

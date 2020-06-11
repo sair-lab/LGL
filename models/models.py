@@ -50,7 +50,7 @@ class Net(nn.Module):
         self.memory_size = self.args.memory_size
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.parameters(), lr=args.lr, momentum=args.momentum)
+        exec('self.optimizer = torch.optim.%s(self.parameters(), lr=%f)'%(args.optm, args.lr))
 
     def forward(self, x, neighbor):
         fadj = self.feature_adjacency(x, neighbor)
