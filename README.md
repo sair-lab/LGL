@@ -21,14 +21,14 @@ Lifelong Graph Learning
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset pubmed
-        python lifelong_data.py --lr 0.001 --batch-size 10 --optm Adam --dataset flickr --data-root [data_location]
+        python lifelong_data.py --lr 0.001 --batch-size 10 --iteration 1 --optm Adam --dataset flickr --data-root [data_location]
 
 * Class-incremental Tasks
 
         python lifelong.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong.py --lr 0.01 --batch-size 10 --dataset pubmed
-        python lifelong.py --lr 0.001 --batch-size 10 --optm Adam --dataset flickr --data-root [data_location]
+        python lifelong.py --lr 0.001 --batch-size 10 --iteration 1 --optm Adam --dataset flickr --data-root [data_location]
 
 * To save your model during training
 
