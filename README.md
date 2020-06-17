@@ -5,7 +5,7 @@ Lifelong Graph Learning
 
 * Python 3.7
 * [PyTorch v1.5+](https://pytorch.org/get-started)
-* [DGL v0.4+](https://www.dgl.ai/pages/start.html)
+* [DGL v0.4+](https://www.dgl.ai/pages/start.html) (Only used for downloading graph datasets)
 
 ---     
 # Training
