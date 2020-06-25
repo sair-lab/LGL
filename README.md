@@ -21,14 +21,14 @@ Lifelong Graph Learning
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong_data.py --lr 0.01 --batch-size 10 --dataset pubmed
-        python lifelong_data.py --lr 0.001 --batch-size 10 --iteration 1 --optm Adam --dataset flickr --data-root [data_location]
+        python lifelong_data.py --lr 0.001 --batch-size 10 --iteration 1 --memory-size 10 --optm Adam --dataset flickr --data-root [data_location]
 
 * Class-incremental Tasks
 
         python lifelong.py --lr 0.01 --batch-size 10 --dataset cora
         python lifelong.py --lr 0.01 --batch-size 10 --dataset citeseer
         python lifelong.py --lr 0.01 --batch-size 10 --dataset pubmed
-        python lifelong.py --lr 0.001 --batch-size 10 --iteration 1 --optm Adam --dataset flickr --data-root [data_location]
+        python lifelong.py --lr 0.001 --batch-size 10 --iteration 1 --memory-size 10 --optm Adam --dataset flickr --data-root [data_location]
 
 * To save your model during training
 
@@ -59,13 +59,13 @@ Lifelong Graph Learning
           --iteration ITERATION
                                 number of training iteration
           --memory-size MEMORY_SIZE
-                                number of samples
+                                number of examplers
           --seed SEED           Random seed.
 
 ---
 # Reproduce the results from paper
 
-* Download the pre-trained models from the [release page](https://github.com/wang-chen/LGL/releases/download/v1.1/loads.zip) and extract it into a folder named 'loads'.
+* Download the [pre-trained models](https://github.com/wang-chen/LGL/releases/download/v1.1/loads.zip) and extract it into a folder named 'loads'.
 
 * To reproduce all results, you may simply run:
 
