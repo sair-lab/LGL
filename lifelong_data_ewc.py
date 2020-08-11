@@ -36,6 +36,7 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 
+from models import EWCLoss
 from datasets import continuum
 from lifelong import performance
 from datasets import graph_collate
@@ -57,10 +58,12 @@ if __name__ == "__main__":
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
+    parser.add_argument("--alpha", type=int, default=100, help="importance to the ewc")
     parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
+    parser.add_argument("--epho", type=int, default=1, help="epho numbers")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
@@ -73,17 +76,34 @@ if __name__ == "__main__":
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
     else:
+
         Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
         nets = {'sage':LifelongSAGE, 'lgl': Model}
         Net = nets[args.model.lower()]
         net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
-        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
-            inputs, targets = inputs.to(args.device), targets.to(args.device)
-            neighbor = [item.to(args.device) for item in neighbor]
-            net.observe(inputs, targets, neighbor)
+        ewc = EWCLoss(net)
+
+        for e in range(args.epho):
+            for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
+                inputs, targets = inputs.to(args.device), targets.to(args.device)
+                neighbor = [item.to(args.device) for item in neighbor]
+
+                for itr in range(args.iteration):
+                    net.train()
+                    net.optimizer.zero_grad()
+                    outputs = net(inputs, neighbor)
+                    ewc_loss = args.alpha * ewc(net, [inputs, neighbor])
+                    loss = net.criterion(outputs, targets) + ewc_loss
+                    loss.backward()
+                    net.optimizer.step()
+                    
+                if batch_idx % 30 ==0:
+                    ewc.update(net)
+
+                    train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
+                    print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
+            train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
+            print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
 
         if args.save is not None:
             torch.save(net, args.save)
-
-    train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
-    print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))

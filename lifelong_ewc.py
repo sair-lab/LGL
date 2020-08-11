@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
-    parser.add_argument("--alpha", type=int, default=100000, help="importance to the ewc")
+    parser.add_argument("--alpha", type=int, default=1000, help="importance to the ewc")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
             # the training process
             net.train()
-            for i in range(args.iteration):
+            for itr in range(args.iteration):
                 net.optimizer.zero_grad()
                 outputs = net(inputs, neighbor)
                 ewc_loss = args.alpha * ewc(net, [inputs, neighbor])
