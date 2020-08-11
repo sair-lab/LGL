@@ -6,4 +6,3 @@ from .layer import FeatBrd1d
 from .layer import FeatTrans1d
 
 from .ewc_loss import EWCLoss
-from .ewc_loss import GraphEWCLoss

@@ -8,7 +8,6 @@ from torch import nn
 class EWCLoss(nn.Module):
     def __init__(self, model):
         super().__init__()
-        print("test")
         self.update(model)
         self.criterion = nn.CrossEntropyLoss()
 
@@ -19,45 +18,24 @@ class EWCLoss(nn.Module):
         self.fisher = [0] * len(parameters)
         self.weights = copy.deepcopy(self.fisher)
 
-    def diag_fisher(self, inputs):
+    def diag_fisher(self, inputs:list):
         self.model.zero_grad()
-        output = self.model(inputs)
+        output = self.model(*inputs)
         label = output.max(1)[1]
         loss = self.criterion(output, label)
         loss.backward()
         fisher = [p.grad.data**2 for p in self.model.parameters()]
         num = self.num
-        self.num += inputs.size(0)
+        self.num += inputs[0].size(0) # batch-size
         self.fisher = [(self.fisher[n]*num+w)/self.num for n, w in enumerate(fisher)]
 
-    def forward(self, model, inputs):
+    def forward(self, model, inputs:list):
         loss = sum([(self.weights[n] * ((p1-p2)**2)).sum()
                         for n, (p1, p2) in enumerate(zip(model.parameters(), self.model.parameters()))
                             if p1.requires_grad and p2.requires_grad])
         self.diag_fisher(inputs)
         return loss/self.parameters
 
-class GraphEWCLoss(EWCLoss):
-    def __init__(self, model):
-        super().__init__(model)
-
-    def forward(self, model, inputs, neighbor):
-        loss = sum([(self.weights[n] * ((p1-p2)**2)).sum()
-                        for n, (p1, p2) in enumerate(zip(model.parameters(), self.model.parameters()))
-                            if p1.requires_grad and p2.requires_grad])
-        self.diag_fisher(inputs, neighbor)
-        return loss/self.parameters
-
-    def diag_fisher(self, inputs, neighbor):
-        self.model.zero_grad()
-        output = self.model(inputs, neighbor)
-        label = output.max(1)[1]
-        loss = self.criterion(output, label)
-        loss.backward()
-        fisher = [p.grad.data**2 for p in self.model.parameters()]
-        num = self.num
-        self.num += inputs.size(0)
-        self.fisher = [(self.fisher[n]*num+w)/self.num for n, w in enumerate(fisher)]
 
 if __name__ == "__main__":
     '''
@@ -95,7 +73,7 @@ if __name__ == "__main__":
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs = net(inputs)
-        loss = criterion(outputs, targets) + alpha * ewcloss(net, inputs)
+        loss = criterion(outputs, targets) + alpha * ewcloss(net, [inputs])
         loss.backward()
         optimizer.step()
 

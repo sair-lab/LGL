@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.utils.data as Data
 
 from models import Net
-from models import GraphEWCLoss
+from models import EWCLoss
 from models import LifelongLGL
 from models import LifelongSAGE
 from datasets import continuum
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     Net = nets[args.model.lower()]
     net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
-    ewc = GraphEWCLoss(net)
+    ewc = EWCLoss(net)
 
     for i in range(test_data.num_class):
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
             for i in range(args.iteration):
                 net.optimizer.zero_grad()
                 outputs = net(inputs, neighbor)
-                ewc_loss = args.alpha * ewc(net, inputs, neighbor)
+                ewc_loss = args.alpha * ewc(net, [inputs, neighbor])
                 loss = net.criterion(outputs, targets) + ewc_loss
                 loss.backward()
                 net.optimizer.step()
