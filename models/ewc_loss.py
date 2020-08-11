@@ -9,14 +9,15 @@ class EWCLoss(nn.Module):
     def __init__(self, model):
         super().__init__()
         self.num = 0
-        self.update(model)
         self.criterion = nn.CrossEntropyLoss()
         parameters = [p.numel() for p in model.parameters() if p.requires_grad]
         self.parameters = sum(parameters)
-        self.weights = [0] * len(parameters)
+        self.fisher = [0] * len(parameters)
+        self.update(model)
 
     def update(self, model):
         self.model = copy.deepcopy(model)
+        self.weights = copy.deepcopy(self.fisher)
 
     def diag_fisher(self, inputs):
         self.model.zero_grad()
@@ -24,10 +25,10 @@ class EWCLoss(nn.Module):
         label = output.max(1)[1]
         loss = self.criterion(output, label)
         loss.backward()
-        weights = [p.grad.data**2 for p in self.model.parameters()]
+        fisher = [p.grad.data**2 for p in self.model.parameters()]
         num = self.num
         self.num += inputs.size(0)
-        self.weights = [(self.weights[n]*num+w)/self.num for n, w in enumerate(weights)]
+        self.fisher = [(self.fisher[n]*num+w)/self.num for n, w in enumerate(fisher)]
 
     def forward(self, model, inputs):
         loss = sum([(self.weights[n] * ((p1-p2)**2)).sum() 
@@ -58,7 +59,7 @@ if __name__ == "__main__":
             x = self.conv2(x)
             return self.fc(x)
 
-    device, alpha = 'cuda:0', 0
+    device, alpha = 'cuda:0', 1
     net = LeNet().to(device)
     train_data = datasets.MNIST('/data/datasets', train=True, transform=transforms.ToTensor(), download=True)
     train_loader = Data.DataLoader(dataset=train_data, batch_size=10, shuffle=True)
