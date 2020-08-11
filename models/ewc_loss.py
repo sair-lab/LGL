@@ -8,15 +8,14 @@ from torch import nn
 class EWCLoss(nn.Module):
     def __init__(self, model):
         super().__init__()
-        self.update(model)
+        self.fisher = [0 for p in model.parameters() if p.requires_grad]
         self.criterion = nn.CrossEntropyLoss()
+        self.update(model)
 
     def update(self, model):
-        self.num, self.model = 0, copy.deepcopy(model)
-        parameters = [p.numel() for p in model.parameters() if p.requires_grad]
-        self.parameters = sum(parameters)
-        self.fisher = [0] * len(parameters)
+        self.model = copy.deepcopy(model)
         self.weights = copy.deepcopy(self.fisher)
+        self.num, self.fisher = 0, [0 for p in model.parameters() if p.requires_grad]
 
     def diag_fisher(self, inputs:list):
         self.model.zero_grad()
@@ -30,11 +29,10 @@ class EWCLoss(nn.Module):
         self.fisher = [(self.fisher[n]*num+w)/self.num for n, w in enumerate(fisher)]
 
     def forward(self, model, inputs:list):
-        loss = sum([(self.weights[n] * ((p1-p2)**2)).sum()
+        self.diag_fisher(inputs)
+        return sum([(self.weights[n] * ((p1-p2)**2)).sum()
                         for n, (p1, p2) in enumerate(zip(model.parameters(), self.model.parameters()))
                             if p1.requires_grad and p2.requires_grad])
-        self.diag_fisher(inputs)
-        return loss/self.parameters
 
 
 if __name__ == "__main__":
@@ -58,7 +56,7 @@ if __name__ == "__main__":
             x = self.conv2(x)
             return self.fc(x)
 
-    device, alpha = 'cuda:0', 1
+    device, alpha = 'cuda:0', 100
     net = LeNet().to(device)
     train_data = datasets.MNIST('/data/datasets', train=True, transform=transforms.ToTensor(), download=True)
     train_loader = Data.DataLoader(dataset=train_data, batch_size=10, shuffle=True)
@@ -73,7 +71,8 @@ if __name__ == "__main__":
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs = net(inputs)
-        loss = criterion(outputs, targets) + alpha * ewcloss(net, [inputs])
+        ewc = ewcloss(net, [inputs])
+        loss = criterion(outputs, targets) + alpha * ewc
         loss.backward()
         optimizer.step()
 
