@@ -8,15 +8,14 @@ from torch import nn
 class EWCLoss(nn.Module):
     def __init__(self, model):
         super().__init__()
-        self.num = 0
+        self.update(model)
         self.criterion = nn.CrossEntropyLoss()
+
+    def update(self, model):
+        self.num, self.model = 0, copy.deepcopy(model)
         parameters = [p.numel() for p in model.parameters() if p.requires_grad]
         self.parameters = sum(parameters)
         self.fisher = [0] * len(parameters)
-        self.update(model)
-
-    def update(self, model):
-        self.model = copy.deepcopy(model)
         self.weights = copy.deepcopy(self.fisher)
 
     def diag_fisher(self, inputs):
