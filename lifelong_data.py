@@ -40,6 +40,7 @@ from datasets import continuum
 from lifelong import performance
 from datasets import graph_collate
 from models import Net, LifelongLGL
+from models import LifelongSAGE
 from torch_util import count_parameters
 
 sys.path.append('models')
@@ -72,7 +73,9 @@ if __name__ == "__main__":
         net = torch.load(args.load, map_location=args.device)
     else:
         Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
-        net = Model(args, feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
+        nets = {'sage':LifelongSAGE, 'lgl': Model}
+        Net = nets[args.model.lower()]
+        net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]

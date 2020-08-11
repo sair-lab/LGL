@@ -39,6 +39,7 @@ import torch.utils.data as Data
 
 from models import Net
 from models import LifelongLGL
+from models import LifelongSAGE
 from datasets import continuum
 from datasets import graph_collate
 from torch_util import count_parameters
@@ -69,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
+    parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
     parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
@@ -93,7 +95,9 @@ if __name__ == "__main__":
         exit()
 
     Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
-    net = Model(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
+    nets = {'sage':LifelongSAGE, 'lgl': Model}
+    Net = nets[args.model.lower()]
+    net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
     for i in range(test_data.num_class):
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
