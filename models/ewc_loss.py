@@ -56,7 +56,7 @@ if __name__ == "__main__":
             x = self.conv2(x)
             return self.fc(x)
 
-    device, alpha = 'cuda:0', 100
+    device, alpha = 'cuda:0', 5000
     net = LeNet().to(device)
     train_data = datasets.MNIST('/data/datasets', train=True, transform=transforms.ToTensor(), download=True)
     train_loader = Data.DataLoader(dataset=train_data, batch_size=10, shuffle=True)
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum().item()
 
-        if batch_idx % 10 == 0:
+        if batch_idx % 100 == 0:
             ewcloss.update(net)
 
     print(train_loss/(batch_idx+1), 100.*correct/total)
