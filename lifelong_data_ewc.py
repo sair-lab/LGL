@@ -62,8 +62,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
-    parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
     parser.add_argument("--epho", type=int, default=1, help="epho numbers")
+    parser.add_argument("--ewcgap", type=int, default=30, help="define samples within one task, if batch_size is 5 recommend 70")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
@@ -96,8 +96,8 @@ if __name__ == "__main__":
                     loss = net.criterion(outputs, targets) + ewc_loss
                     loss.backward()
                     net.optimizer.step()
-                    
-                if batch_idx % 30 ==0:
+
+                if batch_idx % args.ewcgap ==0:
                     ewc.update(net)
 
                     train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
