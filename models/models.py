@@ -146,11 +146,8 @@ class PlainNet(nn.Module):
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
         self.feat2 = FeatBrd1d(in_channels=hidden, out_channels=hidden)
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden), nn.Softsign())
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(feat_len*hidden, 100),
-            nn.Softsign(),
-            nn.Linear(100, num_class))
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(feat_len*hidden, num_class))
+
 
     def forward(self, x, neighbor):
         fadj = self.feature_adjacency(x, neighbor)

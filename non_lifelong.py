@@ -68,14 +68,14 @@ if __name__ == '__main__':
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
     parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
-    parser.add_argument("--dataset", type=str, default='citeseer', help="cora, citeseer, pubmed")
+    parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, pubmed")
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--factor", type=float, default=0.1, help="ReduceLROnPlateau factor")
     parser.add_argument("--min-lr", type=float, default=0.01, help="minimum lr for ReduceLROnPlateau")
     parser.add_argument("--patience", type=int, default=5, help="patience for Early Stop")
-    parser.add_argument("--batch-size", type=int, default=5, help="number of minibatch size")
+    parser.add_argument("--batch-size", type=int, default=10, help="number of minibatch size")
     parser.add_argument("--milestones", type=int, default=15, help="milestones for applying multiplier")
     parser.add_argument("--epochs", type=int, default=20, help="number of training epochs")
     parser.add_argument("--early-stop", type=int, default=5, help="number of epochs for early stop training")
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
 
     # Models
-    Model = PlainNet if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LGL
+    Model = PlainNet if args.dataset.lower() in ['cora', 'pubmed'] else LGL
     nets = {'sage':SAGE, 'lgl': Model}
     Net = nets[args.model.lower()]
     net = Net(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
