@@ -1,29 +1,4 @@
-# Copyright <2020> <Chen Wang <https://chenwang.site>, Carnegie Mellon University>
 
-# Redistribution and use in source and binary forms, with or without modification, are 
-# permitted provided that the following conditions are met:
-
-# 1. Redistributions of source code must retain the above copyright notice, this list of 
-# conditions and the following disclaimer.
-
-# 2. Redistributions in binary form must reproduce the above copyright notice, this list 
-# of conditions and the following disclaimer in the documentation and/or other materials 
-# provided with the distribution.
-
-# 3. Neither the name of the copyright holder nor the names of its contributors may be 
-# used to endorse or promote products derived from this software without specific prior 
-# written permission.
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY 
-# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES 
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT 
-# SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, 
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED 
-# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
-# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN 
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
-# DAMAGE.
 
 import os
 import sys
@@ -38,6 +13,7 @@ import torch.nn as nn
 import torch.utils.data as Data
 
 from models import Net
+from models import EWCLoss
 from models import LifelongLGL
 from models import LifelongSAGE
 from datasets import continuum
@@ -75,11 +51,13 @@ if __name__ == "__main__":
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
+    parser.add_argument("--alpha", type=int, default=1000, help="importance to the ewc")
     parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
+    parser.add_argument("-d", "--debug", action="store_true", help="print out loss")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
@@ -99,13 +77,27 @@ if __name__ == "__main__":
     Net = nets[args.model.lower()]
     net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
+    ewc = EWCLoss(net)
+
     for i in range(test_data.num_class):
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
         incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
-            net.observe(inputs, targets, neighbor)
+
+            # the training process
+            net.train()
+            for itr in range(args.iteration):
+                net.optimizer.zero_grad()
+                outputs = net(inputs, neighbor)
+                ewc_loss = args.alpha * ewc(net, [inputs, neighbor])
+                loss = net.criterion(outputs, targets) + ewc_loss
+                loss.backward()
+                net.optimizer.step()
+            if args.debug: print("ewc loss: %f lgl loss: %f"%(ewc_loss.item(), loss.item()-ewc_loss.item()))
+
+        ewc.update(net)# update after each task
 
         train_acc, test_acc = performance(incremental_loader, net, args.device), performance(test_loader, net, args.device)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])

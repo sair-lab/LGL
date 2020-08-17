@@ -1,4 +1,6 @@
-# Copyright <2019> <Chen Wang <https://chenwang.site>, Carnegie Mellon University>
+#!/usr/bin/env python3
+
+# Copyright <2020> <Chen Wang [https://chenwang.site], Carnegie Mellon University>
 
 # Redistribution and use in source and binary forms, with or without modification, are 
 # permitted provided that the following conditions are met:
@@ -26,41 +28,6 @@
 # DAMAGE.
 
 import torch
-import torch.nn as nn
-from layer import FeatBrd1d
 
-
-class FGN(nn.Module):
-    def __init__(self, adjacency, hidden=2, num_class=7):
-        super(FGN, self).__init__()
-
-        self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden)
-        self.batch1 = nn.BatchNorm1d(hidden)
-        self.acvt = nn.Softsign()
-        self.feat2 = FeatBrd1d(in_channels=hidden, out_channels=hidden, adjacency=adjacency)
-        self.batch2 = nn.BatchNorm1d(hidden)
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(adjacency.size(0)*hidden, num_class))
-
-    def forward(self, x, adj=None):
-        x = self.feat1(x, adj)
-        x = self.batch1(x)
-        x = self.acvt(x)
-        x = self.feat2(x)
-        x = self.batch2(x)
-        x = self.acvt(x)
-        return self.classifier(x)
-
-
-if __name__ == "__main__":
-    '''
-    Debug script for FGN model 
-    '''
-    n_feature, n_channel, n_batch = 1433, 1, 3
-    feature = torch.FloatTensor(n_batch, n_channel, n_feature).random_()
-    adjacency = torch.FloatTensor(n_feature, n_feature).random_()
-
-    model = FGN(adjacency)
-    label = model(feature)
-    print('Input: {}; Output: {}'.format(feature.shape, label.shape))
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
