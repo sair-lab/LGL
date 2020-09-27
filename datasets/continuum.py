@@ -10,6 +10,7 @@ from dgl.data import citegrh
 from itertools  import compress
 from torchvision.datasets import VisionDataset
 from .continuumLS import ContinuumLS
+from .continuumOGB import ContinuumOGB
 
 
 def graph_collate(batch):
@@ -18,16 +19,16 @@ def graph_collate(batch):
     neighbor = [item[2] for item in batch]
     return [feature, labels, neighbor]
 
-
 def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, download=True):
     name = name.lower()
     if name in ['reddit', 'flickr']:
         return ContinuumLS(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     elif name in ['cora', 'citeseer', 'pubmed']:
         return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
+    elif name in ["ogbn-products"]:
+        return ContinuumOGB(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     else:
         raise RuntimeError('data type {} wrong'.format(data_type))
-
 
 class Continuum(VisionDataset):
     def __init__(self, root='~/.dgl', name='cora', data_type='train', download=True, task_type=0):
