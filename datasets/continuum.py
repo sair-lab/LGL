@@ -28,7 +28,7 @@ def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, do
     elif name in ["ogbn-products"]:
         return ContinuumOGB(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     else:
-        raise RuntimeError('data type {} wrong'.format(data_type))
+        raise RuntimeError('name type {} wrong'.format(name))
 
 class Continuum(VisionDataset):
     def __init__(self, root='~/.dgl', name='cora', data_type='train', download=True, task_type=0):
