@@ -25,7 +25,7 @@ def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, do
         return ContinuumLS(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     elif name in ['cora', 'citeseer', 'pubmed']:
         return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
-    elif name in ["ogbn-products"]:
+    elif name in ["ogbn-products", "ogbn-arxiv", "ogbn-proteins"]:
         return ContinuumOGB(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     else:
         raise RuntimeError('name type {} wrong'.format(name))

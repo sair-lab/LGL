@@ -90,6 +90,8 @@ if __name__ == '__main__':
     train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True)
+    valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
 
     # Models
     Model = PlainNet if args.dataset.lower() in ['cora', 'pubmed'] else LGL
@@ -117,8 +119,8 @@ if __name__ == '__main__':
             print('Early Stopping!')
             break
 
-    train_acc, test_acc = performance(train_loader, best_net, args.device), performance(test_loader, best_net, args.device)
-    print('train_acc: %.3f, test_acc: %.3f'%(train_acc, test_acc))
+    train_acc, test_acc, valid_acc = performance(train_loader, best_net, args.device), performance(test_loader, best_net, args.device), performance(valid_loader, best_net, args.device)
+    print('train_acc: %.3f, test_acc: %.3f, valid_acc: %.3f'%(train_acc, test_acc, valid_acc))
 
     if args.save is not None:
         torch.save(best_net, args.save)
