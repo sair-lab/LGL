@@ -62,13 +62,14 @@ if __name__ == "__main__":
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
+    parser.add_argument("--jump", type=int, default=1, help="reply samples")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
