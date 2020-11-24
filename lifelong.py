@@ -80,11 +80,22 @@ if __name__ == "__main__":
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
+    parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
+    parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+
+    # for ogn dataset
+    if not args.dataset in ["cora", "citeseer", "pubmed"]:
+        valid_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
+        valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+
+    if args.eval:
+        with open(args.eval+'.txt','w') as file:
+            file.write(str(args)+"\n")
 
     if args.load is not None:
         train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
@@ -99,6 +110,7 @@ if __name__ == "__main__":
     Net = nets[args.model.lower()]
     net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
+
     for i in range(test_data.num_class):
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
         incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate)
@@ -109,11 +121,17 @@ if __name__ == "__main__":
 
         train_acc, test_acc = performance(incremental_loader, net, args.device), performance(test_loader, net, args.device)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
+        
+        if args.eval: 
+                test_acc, incre_acc = performance(test_loader, net, args.device), performance(incremental_loader, net, args.device)
+                with open(args.eval+'-acc.txt','a') as file:
+                    file.write((str([i, incre_acc, test_acc])+'\n').replace('[','').replace(']',''))
 
     evaluation_metrics = torch.Tensor(evaluation_metrics)
     print('        | task | sample | train_acc | test_acc |')
     print(evaluation_metrics)
-    print('number of parameters:', count_parameters(net))
+    num_parameters = count_parameters(net)
+    print('number of parameters:', num_parameters)
 
     if args.save is not None:
         torch.save(net, args.save)
@@ -130,3 +148,10 @@ if __name__ == "__main__":
         for i, txt in enumerate(evaluation_metrics[:,1]):
             plt.annotate(int(txt),(tasks[i], evaluation_metrics[:,3][i]))
         plt.savefig("doc/plt.png")
+
+    if args.eval: 
+        test_acc, incre_acc = performance(test_loader, net, args.device), performance(incremental_loader, net, args.device)
+        valid_acc = performance(valid_loader, net, args.device), performance(incremental_loader, net, args.device)
+        with open(args.eval+'-acc.txt','a') as file:
+            file.write('number of parameters:%i'%num_parameters)
+            file.write((str([i, incre_acc, test_acc, valid_acc])+'\n').replace('[','').replace(']',''))
