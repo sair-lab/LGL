@@ -86,12 +86,12 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
 
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
     # for ogn dataset
     if not args.dataset in ["cora", "citeseer", "pubmed"]:
         valid_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-        valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+        valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
     if args.eval:
         with open(args.eval+'.txt','w') as file:
@@ -106,14 +106,15 @@ if __name__ == "__main__":
         exit()
 
     Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
-    nets = {'sage':LifelongSAGE, 'lgl': Model}
+    nets = {'sage':LifelongSAGE, 'lgl': Model, 'plain': Net}
     Net = nets[args.model.lower()]
     net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
     evaluation_metrics = []
 
     for i in range(test_data.num_class):
+        # hack here to check 18
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
-        incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate)
+        incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate, drop_last=True)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
@@ -123,9 +124,11 @@ if __name__ == "__main__":
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
         
         if args.eval: 
-                test_acc, incre_acc = performance(test_loader, net, args.device), performance(incremental_loader, net, args.device)
-                with open(args.eval+'-acc.txt','a') as file:
-                    file.write((str([i, incre_acc, test_acc])+'\n').replace('[','').replace(']',''))
+            incre_acc =  performance(incremental_loader, net, args.device)
+            with open(args.eval+'-acc.txt','a') as file:
+                file.write((str([i, incre_acc])+'\n').replace('[','').replace(']',''))
+        if args.save is not None:
+            torch.save(net, args.save)
 
     evaluation_metrics = torch.Tensor(evaluation_metrics)
     print('        | task | sample | train_acc | test_acc |')
@@ -153,5 +156,6 @@ if __name__ == "__main__":
         test_acc, incre_acc = performance(test_loader, net, args.device), performance(incremental_loader, net, args.device)
         valid_acc = performance(valid_loader, net, args.device), performance(incremental_loader, net, args.device)
         with open(args.eval+'-acc.txt','a') as file:
-            file.write('number of parameters:%i'%num_parameters)
-            file.write((str([i, incre_acc, test_acc, valid_acc])+'\n').replace('[','').replace(']',''))
+            file.write('number of parameters:%i\n'%num_parameters)
+            file.write('| task | train_acc | test_acc | valid_acc |\n')
+            file.write((str([i, incre_acc, test_acc, valid_acc])).replace('[','').replace(']',''))

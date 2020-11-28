@@ -62,19 +62,28 @@ if __name__ == "__main__":
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
+    parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
+    parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
+    if not args.dataset in ["cora", "citeseer", "pubmed"]:
+        valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True)
+        valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
+
+    if args.eval:
+        with open(args.eval+'.txt','w') as file:
+            file.write(str(args))
 
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
     else:
         Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
-        nets = {'sage':LifelongSAGE, 'lgl': Model}
+        nets = {'sage':LifelongSAGE, 'lgl': Model, 'plain': Net}
         Net = nets[args.model.lower()]
         net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class).to(args.device)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
@@ -82,8 +91,20 @@ if __name__ == "__main__":
             neighbor = [item.to(args.device) for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
+            if args.eval and batch_idx%args.sample_rate*10 == 0:
+                test_acc = performance(test_loader, net, args.device)
+#                 performance(train_loader, net, args.device)
+                with open(args.eval+'-acc.txt','a') as file:
+                    file.write((str([batch_idx*args.batch_size, test_acc])+'\n').replace('[','').replace(']',''))
+
         if args.save is not None:
             torch.save(net, args.save)
 
-    train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
-    print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
+    test_acc, train_acc, valid_acc = performance(test_loader, net, args.device), performance(train_loader, net, args.device), performance(valid_loader, net, args.device)
+    print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
+
+    if args.eval:
+        valid_acc = performance(valid_loader, net, args.device)
+        with open(args.eval+'-acc.txt','a') as file:
+            file.writ("| sample | train_acc | test_acc | valid_acc |\n")
+            file.write((str([batch_idx*args.batch_size, train_acc, test_acc, valid_acc])+'\n').replace('[','').replace(']',''))
