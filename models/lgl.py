@@ -64,7 +64,7 @@ class LifelongLGL(LGL):
         self.criterion = nn.CrossEntropyLoss()
         exec('self.optimizer = torch.optim.%s(self.parameters(), lr=%f)'%(args.optm, args.lr))
 
-    def observe(self, inputs, targets, neighbor):
+    def observe(self, inputs, targets, neighbor, reply=True):
         self.train()
         for i in range(self.args.iteration):
             self.optimizer.zero_grad()
@@ -74,15 +74,16 @@ class LifelongLGL(LGL):
             self.optimizer.step()
 
         self.sample(inputs, targets, neighbor)
-        L = torch.randperm(self.inputs.size(0))
-        minibatches = [L[n:n+self.args.batch_size] for n in range(0, len(L), self.args.batch_size)]
-        for index in minibatches:
-            self.optimizer.zero_grad()
-            inputs, targets, neighbor = self.inputs[index], self.targets[index], [self.neighbor[i] for i in index.tolist()]
-            outputs = self.forward(inputs, neighbor)
-            loss = self.criterion(outputs, targets)
-            loss.backward()
-            self.optimizer.step()
+        if reply:
+            L = torch.randperm(self.inputs.size(0))
+            minibatches = [L[n:n+self.args.batch_size] for n in range(0, len(L), self.args.batch_size)]
+            for index in minibatches:
+                self.optimizer.zero_grad()
+                inputs, targets, neighbor = self.inputs[index], self.targets[index], [self.neighbor[i] for i in index.tolist()]
+                outputs = self.forward(inputs, neighbor)
+                loss = self.criterion(outputs, targets)
+                loss.backward()
+                self.optimizer.step()
 
     @torch.no_grad()
     def uniform_sample(self, inputs, targets, neighbor):

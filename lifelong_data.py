@@ -62,8 +62,10 @@ if __name__ == "__main__":
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
+
     parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
     parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
+    parser.add_argument("--jump", type=int, default=1, help="reply samples")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
@@ -71,6 +73,7 @@ if __name__ == "__main__":
     train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
+
     if not args.dataset in ["cora", "citeseer", "pubmed"]:
         valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True)
         valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)

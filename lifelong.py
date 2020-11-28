@@ -63,6 +63,23 @@ def performance(loader, net, device):
     return acc
 
 
+def accuracy(net, loader, device, num_class):
+    net.eval()
+    correct, total = 0, 0
+    classes = torch.arange(num_class).view(-1,1).to(device)
+    with torch.no_grad():
+        for idx, (inputs, targets, neighbor) in enumerate(loader):
+            if torch.cuda.is_available():
+                inputs, targets, neighbor = inputs.to(device), targets.to(device), [item.to(device) for item in neighbor]
+            outputs = net(inputs, neighbor)
+            _, predicted = torch.max(outputs.data, 1)
+            total += (targets == classes).sum(1)
+            corrected = predicted==targets
+            correct += torch.stack([corrected[targets==i].sum() for i in range(num_class)])
+        acc = correct/total
+    return acc
+
+
 if __name__ == "__main__":
 
     # Arguements
@@ -72,11 +89,12 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
     parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
     parser.add_argument("--load", type=str, default=None, help="load pretrained model file")
-    parser.add_argument("--save", type=str, default=None, help="model file to save")
+    parser.add_argument("--save", type=str, default='accuracy/cora-lgl-test', help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
-    parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
-    parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
+    parser.add_argument("--batch-size", type=int, default=5, help="minibatch size")
+    parser.add_argument("--jump", type=int, default=1, help="reply samples")
+    parser.add_argument("--iteration", type=int, default=10, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
@@ -99,7 +117,7 @@ if __name__ == "__main__":
 
     if args.load is not None:
         train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
         net = torch.load(args.load, map_location=args.device)
         train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
@@ -118,7 +136,7 @@ if __name__ == "__main__":
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
-            net.observe(inputs, targets, neighbor)
+            net.observe(inputs, targets, neighbor, batch_idx%args.jump==0)
 
         train_acc, test_acc = performance(incremental_loader, net, args.device), performance(test_loader, net, args.device)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
