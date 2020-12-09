@@ -42,7 +42,7 @@ from models import LifelongLGL
 from models import LifelongSAGE
 from datasets import continuum
 from datasets import graph_collate
-from torch_util import count_parameters
+from torch_util import count_parameters, Timer
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")

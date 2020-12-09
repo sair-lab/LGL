@@ -27,7 +27,39 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
 # DAMAGE.
 
+import time
 import torch
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+class Timer:
+    def __init__(self):
+        torch.cuda.synchronize()
+        self.start_time = time.time()
+
+    def tic(self):
+        self.start()
+
+    def show(self, prefix="", output=True):
+        torch.cuda.synchronize()
+        duration = time.time()-self.start_time
+        if output:
+            print(prefix+"%fs" % duration)
+        return duration
+
+    def toc(self, prefix=""):
+        self.end()
+        print(prefix+"%fs = %fHz" % (self.duration, 1/self.duration))
+        return self.duration
+
+    def start(self):
+        torch.cuda.synchronize()
+        self.start_time = time.time()
+
+    def end(self):
+        torch.cuda.synchronize()
+        self.duration = time.time()-self.start_time
+        self.start()
+        return self.duration

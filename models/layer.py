@@ -81,7 +81,7 @@ class FeatTrans1d(nn.Module):
         return self.conv((adj.unsqueeze(1) @ x.unsqueeze(-1)).squeeze(-1)).view(x.size(0), self.out_channels, self.out_features)
 
     def feature_adjacency(self, x, y):
-        fadj = torch.stack([(x[i].unsqueeze(-1) @ y[i].unsqueeze(-2)).sum(dim=[0,1]) for i in range(x.size(0))])
+        fadj = torch.stack([torch.einsum('ca,ncb->ab', x[i], y[i]) for i in range(x.size(0))])
         fadj += fadj.transpose(-2, -1)
         return self.row_normalize(self.sgnroot(fadj))
 
