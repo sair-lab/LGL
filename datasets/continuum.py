@@ -19,22 +19,22 @@ def graph_collate(batch):
     neighbor = [item[2] for item in batch]
     return [feature, labels, neighbor]
 
-def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, download=True):
+def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, k_hop = 1, download=True):
     name = name.lower()
     if name in ['reddit', 'flickr']:
         return ContinuumLS(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     elif name in ['cora', 'citeseer', 'pubmed']:
-        return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
+        return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, k_hop = k_hop, download=download)
     elif name in ["ogbn-products", "ogbn-arxiv", "ogbn-proteins"]:
         return ContinuumOGB(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
     else:
         raise RuntimeError('name type {} wrong'.format(name))
 
 class Continuum(VisionDataset):
-    def __init__(self, root='~/.dgl', name='cora', data_type='train', download=True, task_type=0):
+    def __init__(self, root='~/.dgl', name='cora', data_type='train', k_hop=1, download=True, task_type=0):
         super(Continuum, self).__init__(root)
         self.name = name
-
+        self.k_hop = k_hop
         self.download()
         self.features = torch.FloatTensor(self.data.features)
         self.ids = torch.LongTensor(list(range(self.features.size(0))))
@@ -50,6 +50,8 @@ class Continuum(VisionDataset):
             self.mask = (np.logical_and((self.labels==task_type),mask)).type(torch.bool) # low efficient
         elif data_type == 'test':
             self.mask = torch.BoolTensor(self.data.val_mask) # use val as test, since val is larger than test
+        elif data_type == 'valid':
+            self.mask = torch.BoolTensor(self.data.val_mask)
         else:
             raise RuntimeError('data type {} wrong'.format(data_type))
 
@@ -59,8 +61,35 @@ class Continuum(VisionDataset):
         return len(self.labels[self.mask])
 
     def __getitem__(self, index):
-        neighbor = self.features[self.dst[self.src==self.ids[self.mask][index]]]
-        return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbor.unsqueeze(-2)
+        '''
+        Return:
+            if k > 1
+            k_neighbor: (K, n, 1, f), K dimenstion is list, n is neighbor
+            if k = 1
+            neighbot: (n,1,f) 1 here for channels
+            feature: (1,f)
+            label: (1,)
+        '''
+        neighbor = self.get_neighbor(self.ids[self.mask][index])
+        if (self.k_hop > 1):
+            ## the index for next k level
+            k_ids = self.dst[self.src==index]
+            neighbors_khop = [neighbor]
+            ## TODO: simplify this process
+            for k in range(self.k_hop - 1):
+                k_id = torch.LongTensor()
+                k_neighbor = torch.FloatTensor()
+                for i in k_ids:
+                    k_id = torch.cat((k_id, self.dst[self.src==i]),0)
+                    k_neighbor = torch.cat((k_neighbor, self.get_neighbor(i)),0)
+                k_ids = k_id
+                neighbors_khop.append(k_neighbor)
+            return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbors_khop
+        else:
+            return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbor
+
+    def get_neighbor(self, ids):
+        return self.features[self.dst[self.src==ids]].unsqueeze(-2)
     
     def download(self):
         """Download data if it doesn't exist in processed_folder already."""
