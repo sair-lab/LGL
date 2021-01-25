@@ -70,23 +70,25 @@ class Continuum(VisionDataset):
             feature: (1,f)
             label: (1,)
         '''
-        neighbor = self.get_neighbor(self.ids[self.mask][index])
-        if (self.k_hop > 1):
-            ## the index for next k level
-            k_ids = self.dst[self.src==index]
-            neighbors_khop = [neighbor]
-            ## TODO: simplify this process
-            for k in range(self.k_hop - 1):
-                k_id = torch.LongTensor()
-                k_neighbor = torch.FloatTensor()
-                for i in k_ids:
-                    k_id = torch.cat((k_id, self.dst[self.src==i]),0)
-                    k_neighbor = torch.cat((k_neighbor, self.get_neighbor(i)),0)
-                k_ids = k_id
-                neighbors_khop.append(k_neighbor)
-            return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbors_khop
-        else:
-            return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbor
+
+        neighbors_khop = list()
+        ids_khop = [index]
+        ## TODO: simplify this process
+        for k in range(self.k_hop):
+            ids = torch.LongTensor()
+            neighbor = torch.FloatTensor()
+            for i in ids_khop:
+                ids = torch.cat((ids, self.dst[self.src==i]),0)
+                neighbor = torch.cat((neighbor, self.get_neighbor(i)),0)
+            ## TODO temporally set the size of level 2 to 50
+            graph_selection = 50
+            if ids.shape[0]>graph_selection:
+                indices = torch.randperm(ids.shape[0])[:graph_selection]
+                ids = ids[indices]
+                neighbor = neighbor[indices]
+            ids_khop = ids ## temp ids for next level
+            neighbors_khop.append(neighbor)
+        return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbors_khop
 
     def get_neighbor(self, ids):
         return self.features[self.dst[self.src==ids]].unsqueeze(-2)
