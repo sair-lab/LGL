@@ -1,5 +1,6 @@
 from .models import Net, PlainNet
 from .lgl import LGL, LifelongLGL, KLGL
+from .lgl import KCAT, KTransCAT
 from .sage import SAGE, LifelongSAGE
 
 from .layer import FeatBrd1d
