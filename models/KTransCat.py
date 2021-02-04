@@ -1,75 +1,45 @@
-
-#!/usr/bin/env python3
-
 import torch
 import numpy as np
 import torch.nn as nn
+from models.layer import FeatBrd1d, FeatTrans1d, FeatTransKhop, FeatTransKCat, FeatTransKhop
 
 
-class SAGE(nn.Module):
+class KTransCAT(nn.Module):
     '''
-    GraphSAGE: Inductive Representation Learning on Large Graphs, NIPS 2017
-    https://arxiv.org/pdf/1706.02216.pdf
+    Using a logit like ResNet and DenseNet to encode the neighbor in different level
     '''
-    def __init__(self, feat_len, num_class, hidden=128, aggr='gcn', k=1):
-        super().__init__()
-        aggrs = {'pool':PoolAggregator, 'mean':MeanAggregator, 'gcn':GCNAggregator}
-        Aggregator = aggrs[aggr]
-        self.tran1 = Aggregator(feat_len, hidden)
-        self.acvt1 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
-        self.tran2 = Aggregator(hidden, hidden)
-        self.acvt2 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
-        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(hidden, num_class))
+    def __init__(self, feat_len, num_class, k=1):
+        super(KTransCAT, self).__init__()
+        self.k = k
+        c = [1, 4, 32]
+        f = [feat_len, 16, 1]
+        self.feat1 = FeatTransKCat(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1], khop = k)
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
+        self.feat2 = FeatTransKCat(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2], khop = k)
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
+
 
     def forward(self, x, neighbor):
-        ## the neighbor should be (N,n,c,f)
-        neighbor = [item[0] for item in neighbor]
-        x, neighbor = self.tran1(x, neighbor)
-        x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
-        x, neighbor = self.tran2(x, neighbor)
-        return self.classifier(self.acvt2(x))
+        neighbor1 = [i[0] for i in neighbor]
+        ## Temp setup the level we chose is also depends on the layer we have 
+        if self.k == 1:
+            neighbor2 = neighbor1
+        else:
+            neighbor2 = [i[1] for i in neighbor]
 
+        x, adj = self.feat1(x, neighbor1)
+        neighbor2 = [self.feat1.transform(neighbor2[i], adj[i:i+1]) for i in range(x.size(0))]
+        x, neighbor2 = self.acvt1(x), [self.acvt1(n) for n in neighbor2]
 
-class GCNAggregator(nn.Module):
-    def __init__(self, in_features, out_features):
-        super().__init__()
-        self.tran = nn.Linear(in_features, out_features, False)
+        x, adj = self.feat2(x, neighbor2)
+        x = self.acvt2(x)
+        return self.classifier(x)
     
-    def forward(self, x, neighbor):
-        f = torch.cat([n.mean(dim=0, keepdim=True) for n in neighbor])
-        x = self.tran(x+f)
-        neighbor = [self.tran(n) for n in neighbor]
-        return x, neighbor
-
-
-class MeanAggregator(nn.Module):
-    def __init__(self, in_features, out_features):
-        super().__init__()
-        self.tranx = nn.Linear(in_features, out_features, False)
-        self.trann = nn.Linear(in_features, out_features, False)
-
-    def forward(self, x, neighbor):
-        f = torch.cat([n.mean(dim=0, keepdim=True) for n in neighbor])
-        x = self.tranx(x) + self.trann(f)
-        neighbor = [self.tranx(n) for n in neighbor]
-        return x, neighbor
-
-
-class PoolAggregator(nn.Module):
-    def __init__(self, in_features, out_features):
-        super().__init__()
-        self.tran = nn.Linear(in_features, out_features, True)
-
-    def forward(self, x, neighbor):
-        f = [self.tran(torch.cat([x[i:i+1], n])) for i, n in enumerate(neighbor)]
-        x = torch.cat([x.max(dim=0, keepdim=True)[0] for x in f])
-        neighbor = [self.tran(n).max(dim=0, keepdim=True)[0] for n in neighbor]
-        return x, neighbor
-
-
-class LifelongSAGE(SAGE):
+    
+class LifelongKTransCAT(KTransCAT):
     def __init__(self, args, feat_len, num_class, k=1):
-        super().__init__(feat_len, num_class)
+        super(LifelongKTransCAT, self).__init__(feat_len, num_class, k)
         self.args = args
         self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))
         self.register_buffer('inputs', torch.Tensor(0, 1, feat_len))
