@@ -14,15 +14,17 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
 class ContinuumLS(VisionDataset):
-    def __init__(self, root='/data/', name='reddit', data_type='train', task_type = 0, download=None):
+    def __init__(self, root='/data/', name='reddit', data_type='train', task_type = 0, download=None, k_hop=1, thres_nodes = 50):
         super(ContinuumLS, self).__init__(root)
         self.name = name
+        self.k_hop = k_hop; self.thres_nodes = thres_nodes
+
         adj_full, adj_train, feats, class_map, role = self.load_data(os.path.join(root,name))
 
         self.adj_train = adj_train
         self.adj_full = adj_full
 
-        self.features = feats
+        self.features = torch.FloatTensor(feats)
         self.feat_len = feats.shape[1]
         self.labels = torch.LongTensor(list(class_map.values()))
         self.num_class = int(torch.max(self.labels) - torch.min(self.labels))+1
@@ -34,7 +36,7 @@ class ContinuumLS(VisionDataset):
         elif data_type == 'incremental':
             self.mask = role["tr"]
             self.mask = list((np.array(self.labels)[self.mask]==task_type).nonzero()[0])
-        elif data_type == 'val':
+        elif data_type == 'valid':
             self.mask = role["va"]
         elif data_type == 'test':
             self.mask = role["te"]
@@ -47,9 +49,30 @@ class ContinuumLS(VisionDataset):
         return len(self.labels[self.mask])
 
     def __getitem__(self, index):
-        neighbor_mask = np.append(self.adj_full[self.mask[index]].nonzero()[1],index)
-        neighbor = self.features[neighbor_mask]
-        return torch.FloatTensor(self.features[self.mask[index]]).unsqueeze(-2), self.labels[self.mask[index]], torch.FloatTensor(neighbor).unsqueeze(-2)
+        neighbors_khop = list()
+        ids_khop = [self.mask[index]]
+
+        for k in range(self.k_hop):
+            ids = torch.LongTensor()
+            neighbor = torch.FloatTensor()
+            for i in ids_khop:
+                ids = torch.cat((ids, self.get_neighborId(i)),0)
+                neighbor = torch.cat((neighbor, self.get_neighbor(i)),0)
+            ## TODO random selection in pytorch is tricky
+            if ids.shape[0]>self.thres_nodes:
+                indices = torch.randperm(ids.shape[0])[:self.thres_nodes]
+                ids = ids[indices]
+                neighbor = neighbor[indices]
+            ids_khop = ids ## temp ids for next level
+            neighbors_khop.append(neighbor) ## cat different level neighbor
+
+        return torch.FloatTensor(self.features[self.mask[index]]).unsqueeze(-2), self.labels[self.mask[index]], neighbors_khop
+
+    def get_neighbor(self, i):
+        return self.features[self.get_neighborId(i)].unsqueeze(-2)
+
+    def get_neighborId(self, i):
+        return torch.LongTensor(self.adj_full[i].nonzero()[1])
 
     def load_data(self, prefix, normalize=True):
         adj_full = scipy.sparse.load_npz('{}/adj_full.npz'.format(prefix)).astype(np.bool)

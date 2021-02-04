@@ -10,9 +10,10 @@ from ogb.nodeproppred import NodePropPredDataset
 
 
 class ContinuumOGB(VisionDataset):
-    def __init__(self, root='~/.dgl', name='"ogbn-arxiv"', data_type='train', download=True, task_type=0):
+    def __init__(self, root='~/.dgl', name='"ogbn-arxiv"', data_type='train', download=True, task_type=0, thres_nodes = 50, k_hop = 1):
         super(ContinuumOGB, self).__init__(root)
         self.name = name
+        self.k_hop = k_hop; self.thres_nodes = thres_nodes
 
         self.download()
         self.features = torch.FloatTensor(self.data['node_feat'])
@@ -29,10 +30,8 @@ class ContinuumOGB(VisionDataset):
                 self.mask = torch.LongTensor()
                 for i in task_type:
                     self.mask =torch.cat([self.mask,mask[self.labels[mask]==i]],0)
-                    print(self.mask.shape)
             else:
                 self.mask = mask[self.labels[mask]==task_type]
-
 
         elif data_type in ['train','test','valid']:
             self.mask = torch.LongTensor(self.idx_split[data_type])
@@ -45,8 +44,27 @@ class ContinuumOGB(VisionDataset):
         return len(self.labels[self.mask])
 
     def __getitem__(self, index):
-        neighbor = self.features[self.dst[self.src==self.mask[index]]]
-        return self.features[self.mask[index]].unsqueeze(-2), self.labels[self.mask[index]], neighbor.unsqueeze(-2)
+        neighbors_khop = list()
+        ids_khop = [self.mask[index]]
+        ## TODO: simplify this process
+        for k in range(self.k_hop):
+            ids = torch.LongTensor()
+            neighbor = torch.FloatTensor()
+            for i in ids_khop:
+                ## save the index of neighbors
+                ids = torch.cat((ids, self.dst[self.src==i]),0)
+                neighbor = torch.cat((neighbor, self.get_neighbor(i)),0)
+            ## TODO random selection in pytorch is tricky
+            if ids.shape[0]>self.thres_nodes:
+                indices = torch.randperm(ids.shape[0])[:self.thres_nodes]
+                ids = ids[indices]
+                neighbor = neighbor[indices]
+            ids_khop = ids ## temp ids for next level
+            neighbors_khop.append(neighbor) ## cat different level neighbor
+        return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbors_khop
+
+    def get_neighbor(self, ids):
+        return self.features[self.dst[self.src==ids]].unsqueeze(-2)
     
     def download(self):
         """Download data if it doesn't exist in processed_folder already."""
