@@ -19,21 +19,22 @@ def graph_collate(batch):
     neighbor = [item[2] for item in batch]
     return [feature, labels, neighbor]
 
-def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, k_hop = 1, download=True):
+def continuum(root='/data/', name='reddit', data_type='train', task_type = 0, k_hop = 1, download=True, thres_nodes = 50):
     name = name.lower()
     if name in ['reddit', 'flickr']:
-        return ContinuumLS(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
+        return ContinuumLS(root=root, name=name, data_type=data_type, task_type = task_type, download=download, k_hop = k_hop, thres_nodes = thres_nodes)
     elif name in ['cora', 'citeseer', 'pubmed']:
-        return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, k_hop = k_hop, download=download)
+        return Continuum(root=root, name=name, data_type=data_type, task_type = task_type, k_hop = k_hop, download=download, thres_nodes = thres_nodes)
     elif name in ["ogbn-products", "ogbn-arxiv", "ogbn-proteins"]:
-        return ContinuumOGB(root=root, name=name, data_type=data_type, task_type = task_type, download=download)
+        return ContinuumOGB(root=root, name=name, data_type=data_type, task_type = task_type, download=download,k_hop = k_hop, thres_nodes = thres_nodes)
     else:
         raise RuntimeError('name type {} wrong'.format(name))
 
 class Continuum(VisionDataset):
-    def __init__(self, root='~/.dgl', name='cora', data_type='train', k_hop=1, download=True, task_type=0):
+    def __init__(self, root='~/.dgl', name='cora', data_type='train', k_hop=1, download=True, task_type=0, thres_nodes = 50):
         super(Continuum, self).__init__(root)
         self.name = name
+        self.thres_nodes = thres_nodes
         self.k_hop = k_hop
         self.download()
         self.features = torch.FloatTensor(self.data.features)
@@ -70,9 +71,8 @@ class Continuum(VisionDataset):
             feature: (1,f)
             label: (1,)
         '''
-
         neighbors_khop = list()
-        ids_khop = [index]
+        ids_khop = [self.ids[self.mask][index]]
         ## TODO: simplify this process
         for k in range(self.k_hop):
             ids = torch.LongTensor()
@@ -80,14 +80,13 @@ class Continuum(VisionDataset):
             for i in ids_khop:
                 ids = torch.cat((ids, self.dst[self.src==i]),0)
                 neighbor = torch.cat((neighbor, self.get_neighbor(i)),0)
-            ## TODO temporally set the size of level 2 to 50
-            graph_selection = 50
-            if ids.shape[0]>graph_selection:
-                indices = torch.randperm(ids.shape[0])[:graph_selection]
+            ## TODO random selection in pytorch is tricky
+            if ids.shape[0]>self.thres_nodes:
+                indices = torch.randperm(ids.shape[0])[:self.thres_nodes]
                 ids = ids[indices]
                 neighbor = neighbor[indices]
             ids_khop = ids ## temp ids for next level
-            neighbors_khop.append(neighbor)
+            neighbors_khop.append(neighbor) #cat different level neighbor
         return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbors_khop
 
     def get_neighbor(self, ids):
