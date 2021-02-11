@@ -63,12 +63,11 @@ def train(loader, net, criterion, optimizer, device):
     train_loss, correct, total = 0, 0, 0
     for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
         inputs, targets, neighbor = inputs.to(device), targets.to(device), [[element.to(device) for element in item]for item in neighbor]
-        
+
         optimizer.zero_grad()
-                
-        ## Neighbor with K-hop set up #Temp
+
         outputs = net(inputs, neighbor)
-        
+
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
@@ -109,14 +108,17 @@ if __name__ == '__main__':
 
     # Datasets
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop=args.k)
-    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate, drop_last=True)
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True, k_hop=args.k)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
     valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True, k_hop=args.k)
-    valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
     
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
+        train_acc, test_acc, valid_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device), performance(valid_loader, net, args.device)
+        print("Train Acc: %.5f, Test Acc: %.5f, Valid Acc: %.5f"%(train_acc, test_acc, valid_acc))
+        exit()
     else:
         print(args.device)
         nets = {'klgl':KLGL,'sage':SAGE, 'lgl': LGL, 'kcat': KCAT, 'ktranscat':KTransCAT}
@@ -126,7 +128,7 @@ if __name__ == '__main__':
         if args.model.lower() == 'sage' or args.model.lower() == 'lgl':
             net = Net(feat_len=train_data.feat_len, num_class=train_data.num_class).to(args.device)
         else:
-            net = Net(feat_len=train_data.feat_len, k=self.k, num_class=train_data.num_class).to(args.device)
+            net = Net(feat_len=train_data.feat_len, k=args.k, num_class=train_data.num_class).to(args.device)
 
     criterion = nn.CrossEntropyLoss()
     exec('optimizer = torch.optim.%s(net.parameters(), lr=%f)'%(args.optm, args.lr))
@@ -144,7 +146,7 @@ if __name__ == '__main__':
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net, criterion, optimizer, args.device)
         test_acc = performance(test_loader, net, args.device) # validate
-        print("epoch: %d, train_loss: %.4f, train_acc: %.3f, test_acc: %.3f"
+        print("epoch: %d, train_loss: %.4f, train_acc: %.4f, test_acc: %.4f"
                 % (epoch, train_loss, train_acc, test_acc))
         if args.eval:
             with open(args.eval+'-acc.txt','a') as file:
@@ -154,17 +156,16 @@ if __name__ == '__main__':
             print("New best Model, copying...")
             best_acc, best_net = test_acc, copy.deepcopy(net)
 
+            if args.save is not None:
+                torch.save(best_net, args.save)
+
         if scheduler.step(error=1-test_acc):
             print('Early Stopping!')
             break
 
     train_acc, test_acc, valid_acc = performance(train_loader, best_net, args.device), performance(test_loader, best_net, args.device), performance(valid_loader, best_net, args.device)
-    print('train_acc: %.3f, test_acc: %.3f, valid_acc: %.3f'%(train_acc, test_acc, valid_acc))
-    
-    if args.save is not None:
-        torch.save(best_net, args.save)
+    print('train_acc: %.4f, test_acc: %.4f, valid_acc: %.4f'%(train_acc, test_acc, valid_acc))
         
     if args.eval:
         with open(args.eval+'-acc.txt','a') as file:
             file.write((str([epoch, train_acc, test_acc, valid_acc])+'\n').replace('[','').replace(']',''))
-        

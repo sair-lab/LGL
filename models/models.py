@@ -32,7 +32,7 @@ from models.layer import FeatBrd1d
 
 
 class Net(nn.Module):
-    def __init__(self, args, feat_len, num_class, hidden=2):
+    def __init__(self, args, feat_len, num_class, k=2, hidden=2):
         super(Net, self).__init__()
         self.args = args
         self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden)
