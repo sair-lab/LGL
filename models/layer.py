@@ -54,6 +54,25 @@ class FeatBrd1d(nn.Module):
             return (self.adjacency @ (self.conv(x).unsqueeze(-1))).view(x.size(0),-1,x.size(-1))
 
 
+class Mlp(nn.Module):
+    def __init__(self, in_channels, in_features, out_channels, out_features):
+        super(Mlp, self).__init__()
+        self.out_channels, self.out_features = out_channels, out_features
+        # Taking advantage of parallel efficiency of nn.Conv1d
+        self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features, bias=False) 
+        
+    def forward(self, x):
+        '''
+        Current set up address for neighbor c = 1
+        adj: (N,c,f,f)
+        x: (N,c,f)
+        mm(N,c,f,f @ N,c,f,1)->(N,c_in,f,1); view->(N,c_in,f)
+        W: (f,c_out*f_out)
+        '''
+        x = self.conv(x)
+        x = x.view(x.size(0), self.out_channels, self.out_features)
+        return x
+
 class FeatTrans1d(nn.Module):
     '''
     Feature Transforming Layer for multi-channel 1D features.

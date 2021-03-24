@@ -28,27 +28,42 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from models.layer import FeatBrd1d, FeatTrans1d, FeatTransKhop, FeatTransKCat, FeatTransKhop
+from models.layer import FeatBrd1d, FeatTrans1d, FeatTransKhop, FeatTransKCat, FeatTransKhop, Mlp
 
 
 class LGL(nn.Module):
-    def __init__(self, feat_len, num_class):
+    def __init__(self, feat_len, num_class, ismlp = False):
+        ## the Flag ismlp will encode without neighbor
         super(LGL, self).__init__()
+        self.ismlp = ismlp
         c = [1, 4, 32]
         f = [feat_len, 16, 1]
-        self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
-        self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
-        self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
-        self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
-        self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
+        if not self.ismlp:
+            self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
+            self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
+            self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
+            self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
+            self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
+        else:
+            self.feat1 = Mlp(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
+            self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
+            self.feat2 = Mlp(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
+            self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
+            self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
 
     def forward(self, x, neighbor):
-        ## Temp LGL works for k =1 ## TODO this can be merge with KLGL
-        neighbor = [i[0] for i in neighbor]
-        x, neighbor = self.feat1(x, neighbor)
-        x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
-        x, neighbor = self.feat2(x, neighbor)
-        x = self.acvt2(x)
+        if not self.ismlp:
+            ## Temp LGL works for k =1 ## TODO this can be merge with KLGL
+            neighbor = [i[0] for i in neighbor]
+            x, neighbor = self.feat1(x, neighbor)
+            x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
+            x, neighbor = self.feat2(x, neighbor)
+            x = self.acvt2(x)
+        else:
+            x = self.feat1(x)
+            x = self.acvt1(x)
+            x = self.feat2(x)
+            x = self.acvt2(x)
         return self.classifier(x)
 
 
