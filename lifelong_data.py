@@ -67,7 +67,8 @@ if __name__ == "__main__":
     parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
     parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
     parser.add_argument("--jump", type=int, default=1, help="reply samples")
-    parser.add_argument("--k", type=int, default=1, help='Random seed.')
+    parser.add_argument("--k", type=int, default=1, help='level of neighbor.')
+    parser.add_argument("--ismlp", action="store_true", help="Flag for mlp only")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
@@ -88,7 +89,8 @@ if __name__ == "__main__":
     else:
         nets = {'klgl':KLGL,'sage':LifelongSAGE, 'lgl': LifelongLGL, 'kcat': KCAT, 'ktranscat':LifelongKTransCAT}
         Net = nets[args.model.lower()]
-        net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class, k=args.k).to(args.device)
+        ## only work for lgl
+        net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class, k=args.k, ismlp = args.ismlp).to(args.device)
         print(test_data.feat_len)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)

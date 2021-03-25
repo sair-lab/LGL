@@ -45,6 +45,7 @@ class LGL(nn.Module):
             self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
             self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
         else:
+            print("usinf mlpp")
             self.feat1 = Mlp(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
             self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
             self.feat2 = Mlp(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
@@ -118,8 +119,8 @@ class KLGL(nn.Module):
 
 
 class LifelongLGL(LGL):
-    def __init__(self, args, feat_len, num_class, k):
-        super(LifelongLGL, self).__init__(feat_len, num_class)
+    def __init__(self, args, feat_len, num_class, k, ismlp = False):
+        super(LifelongLGL, self).__init__(feat_len, num_class, ismlp = ismlp)
         self.args = args
         self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))
         self.register_buffer('inputs', torch.Tensor(0, 1, feat_len))
