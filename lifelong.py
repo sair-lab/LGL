@@ -52,7 +52,7 @@ def performance(loader, net, device):
     net.eval()
     correct, total = 0, 0
     with torch.no_grad():
-        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
+        for batch_idx, (inputs, targets, neighbor) in enumerate(loader):
             if torch.cuda.is_available():
                 inputs, targets, neighbor = inputs.to(device), targets.to(device), [item.to(device) for item in neighbor]
             outputs = net(inputs, neighbor)

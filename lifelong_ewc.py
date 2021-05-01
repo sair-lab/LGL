@@ -51,8 +51,8 @@ if __name__ == "__main__":
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
-    parser.add_argument("--alpha", type=int, default=1000, help="importance to the ewc")
-    parser.add_argument("--batch-size", type=int, default=10, help="minibatch size")
+    parser.add_argument("--alpha", type=int, default=1, help="importance to the ewc")
+    parser.add_argument("--batch-size", type=int, default=30, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
@@ -62,11 +62,11 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
 
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
-    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+    test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
     if args.load is not None:
         train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True)
-        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate)
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
         net = torch.load(args.load, map_location=args.device)
         train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     for i in range(test_data.num_class):
         incremental_data = continuum(root=args.data_root, name=args.dataset, data_type='incremental', download=True, task_type = i)
-        incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate)
+        incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate, drop_last=True)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             neighbor = [item.to(args.device) for item in neighbor]
