@@ -58,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--save", type=str, default=None, help="model file to save")
     parser.add_argument("--optm", type=str, default='SGD', help="SGD or Adam")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
-    parser.add_argument("--alpha", type=int, default=1000, help="importance to the ewc")
+    parser.add_argument("--alpha", type=int, default=100, help="importance to the ewc")
     parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
     parser.add_argument("--batch-size", type=int, default=40, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
