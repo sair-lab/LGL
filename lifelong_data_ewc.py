@@ -62,10 +62,12 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
     parser.add_argument("--batch-size", type=int, default=40, help="minibatch size")
     parser.add_argument("--iteration", type=int, default=5, help="number of training iteration")
+    parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
     parser.add_argument("--memory-size", type=int, default=100, help="number of samples")
     parser.add_argument("--epho", type=int, default=1, help="epho numbers")
-    parser.add_argument("--ewcgap", type=int, default=200, help="define samples within one task, if batch_size is 5 recommend 70")
+    parser.add_argument("--ewcgap", type=int, default=10, help="define samples within one task, if batch_size is 5 recommend 70")
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
+    parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
@@ -74,8 +76,15 @@ if __name__ == "__main__":
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
+    best_acc = 0
+    if args.eval:
+        with open(args.eval+'-acc.txt','a') as file:
+            file.write(str(args)+"\n")
+
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
+        test_acc = performance(test_loader, net, args.device)
+        print("Test Acc: %.3f"%(test_acc))
     else:
 
         Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
@@ -89,6 +98,15 @@ if __name__ == "__main__":
                 inputs, targets = inputs.to(args.device), targets.to(args.device)
                 neighbor = [item.to(args.device) for item in neighbor]
 
+                if args.eval and batch_idx%args.sample_rate*10 == 0:
+                    test_acc = performance(test_loader, net, args.device)
+                    with open(args.eval+'-acc.txt','a') as file:
+                        file.write((str([batch_idx*args.batch_size, test_acc])+'\n').replace('[','').replace(']',''))
+                        print((str([batch_idx*args.batch_size, test_acc])+'\n').replace('[','').replace(']',''))
+                    if (test_acc > best_acc) and (args.save is not None):
+                        best_acc = test_acc
+                        torch.save(net, args.save)
+
                 for itr in range(args.iteration):
                     net.train()
                     net.optimizer.zero_grad()
@@ -101,10 +119,13 @@ if __name__ == "__main__":
                 if batch_idx % args.ewcgap ==0:
                     ewc.update(net)
 
-                    train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
-                    print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
+                    # train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
+                    # print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
             train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
             print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
 
-        if args.save is not None:
-            torch.save(net, args.save)
+            if (test_acc > best_acc) and (args.save is not None):
+                best_acc = test_acc
+                torch.save(net, args.save)
+
+            print("Best Test Acc: %.3f"%(best_acc))

@@ -78,12 +78,15 @@ if __name__ == "__main__":
         valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True)
         valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
+    best_acc = 0
     if args.eval:
         with open(args.eval+'.txt','w') as file:
             file.write(str(args))
 
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
+        test_acc = performance(test_loader, net, args.device)
+        print("Test Acc: %.3f"%(test_acc))
     else:
         Model = Net if args.dataset.lower() in ['cora', 'citeseer', 'pubmed'] else LifelongLGL
         nets = {'sage':LifelongSAGE, 'lgl': Model, 'plain': Net}
@@ -99,15 +102,16 @@ if __name__ == "__main__":
 #                 performance(train_loader, net, args.device)
                 with open(args.eval+'-acc.txt','a') as file:
                     file.write((str([batch_idx*args.batch_size, test_acc])+'\n').replace('[','').replace(']',''))
+                    print((str([batch_idx*args.batch_size, test_acc])+'\n').replace('[','').replace(']',''))
+                if (test_acc > best_acc) and (args.save is not None):
+                    best_acc = test_acc
+                    torch.save(net, args.save)
 
-        if args.save is not None:
+        train_acc, test_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device)
+        print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
+
+        if (test_acc > best_acc) and (args.save is not None):
+            best_acc = test_acc
             torch.save(net, args.save)
 
-    test_acc, train_acc, valid_acc = performance(test_loader, net, args.device), performance(train_loader, net, args.device), performance(valid_loader, net, args.device)
-    print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
-
-    if args.eval:
-        valid_acc = performance(valid_loader, net, args.device)
-        with open(args.eval+'-acc.txt','a') as file:
-            file.writ("| sample | train_acc | test_acc | valid_acc |\n")
-            file.write((str([batch_idx*args.batch_size, train_acc, test_acc, valid_acc])+'\n').replace('[','').replace(']',''))
+        print("Best Test Acc: %.3f"%(best_acc))
