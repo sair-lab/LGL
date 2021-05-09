@@ -1,6 +1,10 @@
 # LGL
 Lifelong Graph Learning
 
+# TODO
+[] Reschdule the Lifelong class
+[] agregate khop
+
 # Dependencies
 
 * Python 3
