@@ -251,3 +251,109 @@ class FeatTransKCat(nn.Module):
         x = x / (x.abs().sum(-2, keepdim=True) + 1e-7)
         x[torch.isnan(x)] = 0
         return x
+    
+    
+class AttnFeatTrans1d(nn.Module):
+    '''
+    Feature Transforming Layer for multi-channel 1D features.
+    Input size should be (n_batch, in_channels, in_features)
+    Output size is (n_batch, out_channels, out_features)
+    Args:
+        in_channels (int): number of feature input channels
+        out_channels (int): number of feature output channels
+        in_features (int): dimension of input features
+        out_features (int): dimension of output features
+    '''
+    def __init__(self, in_channels, in_features, out_channels, out_features):
+        super(AttnFeatTrans1d, self).__init__()
+        self.out_channels, self.out_features = out_channels, out_features
+        # Taking advantage of parallel efficiency of nn.Conv1d
+        self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features, bias=False)
+        self.att1 = nn.Linear(in_features, in_channels, bias=False)
+        self.att2 = nn.Linear(in_features, in_channels, bias=False)
+        
+    def forward(self, x, neighbor):
+        adj = self.feature_adjacency(x, neighbor)
+        x = self.transform(x, adj)
+        neighbor = [self.transform(neighbor[i], adj[i:i+1]) for i in range(x.size(0))]
+        return x, neighbor
+
+    def transform(self, x, adj):
+        '''
+        Current set up address for neighbor c = 1
+        adj: (N,c,f,f)
+        x: (N,c,f)
+        mm(N,c,f,f @ N,c,f,1)->(N,c_in,f,1); view->(N,c_in,f)
+        W: (c_out*f_out,f)
+        '''
+        return self.conv((adj @ x.unsqueeze(-1)).squeeze(-1)).view(x.size(0), self.out_channels, self.out_features)
+
+    def feature_adjacency(self, x, y):
+        B, C, F = x.shape
+        attn = w = [torch.einsum('ci,nkl->n', self.att1(x[i]), self.att2(y[i])) for i in range(B)]
+        fadj = torch.stack([torch.einsum("ca, ncb, n -> cab", x[i], y[i], w[i]) for i in range(B)])
+        fadj += fadj.transpose(-2, -1)
+        return self.row_normalize(self.sgnroot(fadj))
+
+    def sgnroot(self, x):
+        return x.sign()*(x.abs().clamp(min=1e-8).sqrt())
+
+    def row_normalize(self, x):
+        x = x / (x.abs().sum(1, keepdim=True) + 1e-7)
+        x[torch.isnan(x)] = 0
+        return x
+
+
+
+class AttnFeatTrans1dSoft(nn.Module):
+    '''
+    Feature Transforming Layer for multi-channel 1D features.
+    Input size should be (n_batch, in_channels, in_features)
+    Output size is (n_batch, out_channels, out_features)
+    Args:
+        in_channels (int): number of feature input channels
+        out_channels (int): number of feature output channels
+        in_features (int): dimension of input features
+        out_features (int): dimension of output features
+    '''
+    def __init__(self, in_channels, in_features, out_channels, out_features):
+        super(AttnFeatTrans1dSoft, self).__init__()
+        self.out_channels, self.out_features = out_channels, out_features
+        # Taking advantage of parallel efficiency of nn.Conv1d
+        self.conv = nn.Conv1d(in_channels, out_channels*out_features, kernel_size=in_features, bias=False)
+        self.att1 = nn.Linear(in_features, in_channels, bias=False)
+        self.att2 = nn.Linear(in_features, in_channels, bias=False)
+        self.norm = nn.Sequential(nn.Softmax(dim=0))
+        
+    def forward(self, x, neighbor):
+        adj = self.feature_adjacency(x, neighbor)
+        x = self.transform(x, adj)
+        neighbor = [self.transform(neighbor[i], adj[i:i+1]) for i in range(x.size(0))]
+        return x, neighbor
+
+    def transform(self, x, adj):
+        '''
+        Current set up address for neighbor c = 1
+        adj: (N,c,f,f)
+        x: (N,c,f)
+        mm(N,c,f,f @ N,c,f,1)->(N,c_in,f,1); view->(N,c_in,f)
+        W: (c_out*f_out,f)
+        '''
+        return self.conv((adj @ x.unsqueeze(-1)).squeeze(-1)).view(x.size(0), self.out_channels, self.out_features)
+
+    def feature_adjacency(self, x, y):
+        B, C, F = x.shape
+        w = [self.norm(torch.einsum('ci,nkl->n', self.att1(x[i]), self.att2(y[i]))) for i in range(B)]
+        fadj = torch.stack([torch.einsum("ca, ncb, n -> cab", x[i], y[i], w[i]) for i in range(B)])
+        fadj += fadj.transpose(-2, -1)
+        return self.row_normalize(self.sgnroot(fadj))
+
+    def sgnroot(self, x):
+        return x.sign()*(x.abs().clamp(min=1e-8).sqrt())
+
+    def row_normalize(self, x):
+        x = x / (x.abs().sum(1, keepdim=True) + 1e-7)
+        x[torch.isnan(x)] = 0
+        return x
+
+

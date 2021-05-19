@@ -1,7 +1,11 @@
-from .models import Net, PlainNet
-from .lgl import LGL, LifelongLGL, KLGL, KCAT
+from .models import Net, PlainNet, AttnPlainNet
+from .lgl import LGL, KLGL, AFGN, KCAT, LifelongRehearsal
 from .KTransCat import KTransCAT, LifelongKTransCAT
 from .sage import SAGE, LifelongSAGE
+from .GCN import GCN
+from .APPNP import APPNP
+from .MLP import MLP
+from .GAT import GAT
 
 from .layer import FeatBrd1d
 from .layer import FeatTrans1d

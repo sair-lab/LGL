@@ -28,43 +28,55 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from models.layer import FeatBrd1d, FeatTrans1d, FeatTransKhop, FeatTransKCat, FeatTransKhop, Mlp
+import torch.nn.functional as nf
+
+from models.layer import FeatBrd1d, FeatTrans1d, FeatTransKhop, FeatTransKCat, FeatTransKhop, Mlp, AttnFeatTrans1d, AttnFeatTrans1dSoft
 
 
 class LGL(nn.Module):
-    def __init__(self, feat_len, num_class, ismlp = False):
+    def __init__(self, feat_len, num_class, hidden = [64, 32], ismlp = False):
         ## the Flag ismlp will encode without neighbor
         super(LGL, self).__init__()
         self.ismlp = ismlp
-        c = [1, 4, 32]
+        c = [1, 4, hidden[1]]
         f = [feat_len, 16, 1]
-        if not self.ismlp:
-            self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
-            self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
-            self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
-            self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
-            self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
-        else:
-            print("usinf mlpp")
-            self.feat1 = Mlp(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
-            self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
-            self.feat2 = Mlp(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
-            self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
-            self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
+            
+        self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
+        self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
+
 
     def forward(self, x, neighbor):
-        if not self.ismlp:
-            ## Temp LGL works for k =1 ## TODO this can be merge with KLGL
-            neighbor = [i[0] for i in neighbor]
-            x, neighbor = self.feat1(x, neighbor)
-            x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
-            x, neighbor = self.feat2(x, neighbor)
-            x = self.acvt2(x)
-        else:
-            x = self.feat1(x)
-            x = self.acvt1(x)
-            x = self.feat2(x)
-            x = self.acvt2(x)
+
+        x, neighbor = self.feat1(x, neighbor)
+        x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
+        x, neighbor = self.feat2(x, neighbor)
+        x = self.acvt2(x)
+
+        return self.classifier(x)
+
+
+class AFGN(nn.Module):
+    def __init__(self, feat_len, num_class, hidden = [64, 32]):
+        ## the Flag ismlp will encode without neighbor
+        super(AFGN, self).__init__()
+        c = [1, 4, hidden[1]]
+        f = [feat_len, 16, 1]
+            
+        self.feat1 = AttnFeatTrans1dSoft(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign())
+        self.feat2 = AttnFeatTrans1dSoft(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(c[2]), nn.Softsign())
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Dropout(p=0.1), nn.Linear(c[2]*f[2], num_class))
+
+    def forward(self, x, neighbor):
+        x, neighbor = nf.normalize(x), [nf.normalize(n) for n in neighbor]
+        x, neighbor = self.feat1(x, neighbor)
+        x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
+        x, neighbor = self.feat2(x, neighbor)
+        x = self.acvt2(x)
         return self.classifier(x)
 
 
@@ -117,11 +129,21 @@ class KLGL(nn.Module):
         x = self.acvt2(x)
         return self.classifier(x)
 
-
-class LifelongLGL(LGL):
-    def __init__(self, args, feat_len, num_class, k, ismlp = False):
-        super(LifelongLGL, self).__init__(feat_len, num_class, ismlp = ismlp)
+            
+class LifelongRehearsal(nn.Module):
+    def __init__(self, args, BackBone, feat_len, num_class, k = None):
+        super(LifelongRehearsal, self).__init__()
         self.args = args
+        if args.dataset in ['flickr','ogbn-arxiv']:
+            hidden = [128,128]
+        else:
+            hidden = [64,32]
+
+        if not k:
+            self.backbone = BackBone(feat_len, num_class, hidden = hidden)
+        else:
+            self.backbone = BackBone(feat_len, num_class, k, hidden = hidden)
+
         self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))
         self.register_buffer('inputs', torch.Tensor(0, 1, feat_len))
         self.register_buffer('targets', torch.LongTensor(0))
@@ -132,7 +154,10 @@ class LifelongLGL(LGL):
         self.criterion = nn.CrossEntropyLoss()
         exec('self.optimizer = torch.optim.%s(self.parameters(), lr=%f)'%(args.optm, args.lr))
 
-    def observe(self, inputs, targets, neighbor, reply=True):
+    def forward(self, inputs, neighbor):
+        return self.backbone(inputs, neighbor)
+
+    def observe(self, inputs, targets, neighbor, replay=True):
         self.train()
         for i in range(self.args.iteration):
             self.optimizer.zero_grad()
@@ -142,7 +167,7 @@ class LifelongLGL(LGL):
             self.optimizer.step()
 
         self.sample(inputs, targets, neighbor)
-        if reply:
+        if replay:
             L = torch.randperm(self.inputs.size(0))
             minibatches = [L[n:n+self.args.batch_size] for n in range(0, len(L), self.args.batch_size)]
             for index in minibatches:
