@@ -39,13 +39,16 @@ import torch.utils.data as Data
 from datasets import continuum
 from lifelong import performance
 from datasets import graph_collate
-from models import Net, LifelongLGL, KLGL
-from models import KCAT, LifelongKTransCAT
-from models import LifelongSAGE
+from models import LGL, AFGN, PlainNet, AttnPlainNet
+from models import KTransCAT
+from models import SAGE, GCN, APPNP, MLP, GAT
+from models import LifelongSAGE, LifelongRehearsal
 from torch_util import count_parameters
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
+
+nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
 
 if __name__ == "__main__":
@@ -67,8 +70,9 @@ if __name__ == "__main__":
     parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
     parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
     parser.add_argument("--jump", type=int, default=1, help="reply samples")
-    parser.add_argument("--k", type=int, default=1, help='level of neighbor.')
-    parser.add_argument("--ismlp", action="store_true", help="Flag for mlp only")
+    parser.add_argument("--k", type=int, default=None, help='level of neighbor.')
+    parser. add_argument("--hidden", type=int, nargs="+", default=[64,32])
+    parser. add_argument("--drop", type=float, nargs="+", default=[0,0])
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
 
@@ -87,22 +91,28 @@ if __name__ == "__main__":
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
     else:
-        nets = {'klgl':KLGL,'sage':LifelongSAGE, 'lgl': LifelongLGL, 'kcat': KCAT, 'ktranscat':LifelongKTransCAT}
         Net = nets[args.model.lower()]
-        ## only work for lgl
-        net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class, k=args.k, ismlp = args.ismlp).to(args.device)
-        print(test_data.feat_len)
+        if args.model.lower() in ['ktranscat']:
+            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop).to(args.device)
+        else:
+            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop).to(args.device)
+
+        print(net)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
             ## take the neighbor with k
-            neighbor = [[element.to(args.device) for element in item]for item in neighbor]
+            if not args.k:
+                neighbor = [element.to(args.device) for element in neighbor]
+            else:
+                neighbor = [[element.to(args.device) for element in item]for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
             if args.eval and batch_idx%args.sample_rate*10 == 0:
+                running_loss = net.running_loss/((batch_idx+1))
                 test_acc = performance(test_loader, net, args.device)
                 with open(args.eval+'-acc.txt','a') as file:
-                    file.write((str([batch_idx*args.batch_size, test_acc])+'\n').replace('[','').replace(']',''))
-                    print((str([batch_idx*args.batch_size, test_acc])+'\n').replace('[','').replace(']',''))
+                    file.write((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
+                    print((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
 
         if args.save is not None:
             torch.save(net, args.save)
