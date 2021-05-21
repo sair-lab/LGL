@@ -37,9 +37,9 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 
-from models import Net, LifelongLGL, KLGL
-from models import KCAT, LifelongKTransCAT
-from models import LifelongSAGE
+from models import SAGE, GCN, APPNP, MLP, GAT, KLGL
+from models import LGL, AFGN PlainNet, AttnPlainNet
+from models import LifelongRehearsal
 from datasets import continuum
 from datasets import graph_collate
 from torch_util import count_parameters, Timer
@@ -47,14 +47,20 @@ from torch_util import count_parameters, Timer
 sys.path.append('models')
 warnings.filterwarnings("ignore")
 
+nets = {'sage':SAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
-def performance(loader, net, device):
+def performance(loader, net, device, k = None):
     net.eval()
     correct, total = 0, 0
     with torch.no_grad():
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
             if torch.cuda.is_available():
-                inputs, targets, neighbor = inputs.to(device), targets.to(device), [[item.to(device) for item in element] for element in neighbor]
+
+                inputs, targets = inputs.to(device), targets.to(device)
+                if not k:
+                    neighbor = [element.to(device) for element in neighbor]
+                else:
+                    neighbor = [[item.to(device) for item in element] for element in neighbor]
             outputs = net(inputs, neighbor)
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
@@ -70,7 +76,11 @@ def accuracy(net, loader, device, num_class):
     with torch.no_grad():
         for idx, (inputs, targets, neighbor) in enumerate(loader):
             if torch.cuda.is_available():
-                inputs, targets, neighbor = inputs.to(device), targets.to(device), [[item.to(device) for item in element] for element in neighbor]
+                inputs, targets = inputs.to(device), targets.to(device)
+                if not k:
+                    neighbor = [element.to(device) for element in neighbor]
+                else:
+                    neighbor = [[item.to(device) for item in element] for element in neighbor]
             outputs = net(inputs, neighbor)
             _, predicted = torch.max(outputs.data, 1)
             total += (targets == classes).sum(1)
@@ -100,7 +110,9 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
     parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
     parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
-    parser.add_argument("--k", type=int, default=1, help='the level of k hop.')
+    parser.add_argument("--k", type=int, default=None, help='the level of k hop.')
+    parser. add_argument("--hidden", type=int, nargs="+", default=[64,32])
+    parser. add_argument("--drop", type=float, nargs="+", default=[0,0])
     parser.add_argument("--merge", type=int, default=1, help='Merge some class if needed.')
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
@@ -111,10 +123,6 @@ if __name__ == "__main__":
     valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True, k_hop = args.k)
     valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
-    if args.eval:
-        with open(args.eval+'-acc.txt','a') as file:
-            file.write(str(args)+"\n")
-
     if args.load is not None:
         train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop = args.k)
         train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
@@ -123,10 +131,20 @@ if __name__ == "__main__":
         print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
         exit()
 
-    nets = {'klgl':KLGL,'sage':LifelongSAGE, 'lgl': LifelongLGL, 'kcat': KCAT, 'ktranscat':LifelongKTransCAT}
     Net = nets[args.model.lower()]
-    net = Net(args, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k).to(args.device)
+    if args.model.lower() in ['klgl', 'kcat', 'ktranscat']:
+        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop).to(args.device)
+    else:
+        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop).to(args.device)
     evaluation_metrics = []
+    num_parameters = count_parameters(net)
+    print('number of parameters:', num_parameters)
+    print(net)
+
+    if args.eval:
+        with open(args.eval+'-acc.txt','a') as file:
+            file.write(str(args) + " number of prarams " + str(num_parameters) + "\n")
+            file.write("epoch | train_acc | test_acc | valid_acc |\n")
 
     task_ids = [i for i in range(test_data.num_class)]
     for i in range(0, test_data.num_class, args.merge):
@@ -141,7 +159,10 @@ if __name__ == "__main__":
 
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             inputs, targets = inputs.to(args.device), targets.to(args.device)
-            neighbor = [[item.to(args.device) for item in element] for element in neighbor]
+            if not args.k:
+                neighbor = [element.to(args.device) for element in neighbor]
+            else:
+                neighbor = [[item.to(args.device) for item in element] for element in neighbor]
             net.observe(inputs, targets, neighbor, batch_idx%args.jump==0)
 
         train_acc, test_acc = performance(incremental_loader, net, args.device), performance(test_loader, net, args.device)
@@ -158,8 +179,6 @@ if __name__ == "__main__":
     evaluation_metrics = torch.Tensor(evaluation_metrics)
     print('        | task | sample | train_acc | test_acc |')
     print(evaluation_metrics)
-    num_parameters = count_parameters(net)
-    print('number of parameters:', num_parameters)
 
     if args.plot:
         import matplotlib.pyplot as plt
