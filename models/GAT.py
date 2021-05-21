@@ -6,7 +6,7 @@ import torch.nn.functional as nf
 
 
 class GAT(nn.Module):
-    def __init__(self, feat_len, num_class, hidden=[64,32], dropout=0):
+    def __init__(self, feat_len, num_class, hidden=[64,32], dropout=[0]):
         '''
         GAT: Graph Attention Network, ICLR, 2018
         https://arxiv.org/pdf/1710.10903.pdf
@@ -16,7 +16,7 @@ class GAT(nn.Module):
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
         self.feat2 = GraphAttn(in_channels = hidden[0], out_channels = hidden[1])
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
-        self.linear = nn.Sequential(nn.Flatten(), nn.Dropout(0.2), nn.Linear(hidden[1], num_class))
+        self.linear = nn.Sequential(nn.Flatten(), nn.Dropout(dropout[-1]), nn.Linear(hidden[1], num_class))
 
     def forward(self, x, neighbor):
         x, neighbor = nf.normalize(x), [nf.normalize(n) for n in neighbor]

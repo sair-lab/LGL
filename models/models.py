@@ -28,6 +28,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
+import torch.nn.functional as nf
 from models.layer import FeatBrd1d
 
 
@@ -141,12 +142,12 @@ class PlainNet(nn.Module):
     '''
     Net without memory
     '''
-    def __init__(self, feat_len, num_class, hidden=[10,10]):
+    def __init__(self, feat_len, num_class, hidden=[10,10], dropout = [0,0]):
         super(PlainNet, self).__init__()
         self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden[0])
-        self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden[0]), nn.Softsign())
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden[0]), nn.Softsign(), nn.Dropout(dropout[0]))
         self.feat2 = FeatBrd1d(in_channels=hidden[0], out_channels=hidden[1])
-        self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden[1]), nn.Softsign())
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden[1]), nn.Softsign(), nn.Dropout(dropout[1]))
         self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(feat_len*hidden[1], num_class))
 
 
@@ -177,12 +178,12 @@ class AttnPlainNet(nn.Module):
     '''
     With attention
     '''
-    def __init__(self, feat_len, num_class, hidden=[10,10]):
+    def __init__(self, feat_len, num_class, hidden=[10,10], dropout = [0,0]):
         super(AttnPlainNet, self).__init__()
         self.feat1 = FeatBrd1d(in_channels=1, out_channels=hidden[0])
-        self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden[0]), nn.Softsign())
+        self.acvt1 = nn.Sequential(nn.BatchNorm1d(hidden[0]), nn.Softsign(), nn.Dropout(dropout[0]))
         self.feat2 = FeatBrd1d(in_channels=hidden[0], out_channels=hidden[1])
-        self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden[1]), nn.Softsign())
+        self.acvt2 = nn.Sequential(nn.BatchNorm1d(hidden[1]), nn.Softsign(), nn.Dropout(dropout[1]))
         self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(feat_len*hidden[1], num_class))
         
         self.att1 = nn.Linear(feat_len, 1, bias=False)
@@ -190,6 +191,8 @@ class AttnPlainNet(nn.Module):
         self.norm = nn.Sequential(nn.Softmax(dim=0))
 
     def forward(self, x, neighbor):
+        x, neighbor = nf.normalize(x), [nf.normalize(n) for n in neighbor]
+
         fadj = self.feature_adjacency(x, neighbor)
         x = self.acvt1(self.feat1(x, fadj))
         x = self.acvt2(self.feat2(x, fadj))

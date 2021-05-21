@@ -11,14 +11,14 @@ class APPNP(nn.Module):
     Predict then Propagate: Graph Neural Networks Meet Personalized Pagerank
     https://arxiv.org/pdf/1810.05997.pdf
     '''
-    def __init__(self, feat_len, num_class, hidden=[64,32], dropout=0, alpha=0.1):
+    def __init__(self, feat_len, num_class, hidden=[64,32], dropout=[0], alpha=0.1):
         super().__init__()
         self.feat_len, self.hidden = feat_len, num_class
         self.tran1 = nn.Linear(feat_len, hidden[0])
         self.tran2 = nn.Linear(hidden[0], hidden[1])
         self.app1 = GraphAppnp(alpha)
         self.app2 = GraphAppnp(alpha)
-        self.acvt = nn.Sequential(nn.ReLU(), nn.Dropout(dropout))
+        self.acvt = nn.Sequential(nn.ReLU(), nn.Dropout(dropout[0]))
         self.classifier = nn.Linear(hidden[1], num_class)
 
     def forward(self, x, neighbor):
