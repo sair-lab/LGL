@@ -53,7 +53,8 @@ class ContinuumOGB(VisionDataset):
             for i in ids_khop:
                 ## save the index of neighbors
                 ids = torch.cat((ids, self.dst[self.src==i]),0)
-                neighbor = torch.cat((neighbor, self.get_neighbor(i)),0)
+                ids = torch.cat((ids,torch.tensor(i).unsqueeze(0)), 0)
+                neighbor = torch.cat((neighbor, self.get_neighbor(ids)),0)
             ## TODO random selection in pytorch is tricky
             if ids.shape[0]>self.thres_nodes:
                 indices = torch.randperm(ids.shape[0])[:self.thres_nodes]
@@ -61,10 +62,12 @@ class ContinuumOGB(VisionDataset):
                 neighbor = neighbor[indices]
             ids_khop = ids ## temp ids for next level
             neighbors_khop.append(neighbor) ## cat different level neighbor
+        if self.k_hop == 1:
+            neighbors_khop = neighbors_khop[0]
         return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbors_khop
 
     def get_neighbor(self, ids):
-        return self.features[self.dst[self.src==ids]].unsqueeze(-2)
+        return self.features[ids].unsqueeze(-2)
     
     def download(self):
         """Download data if it doesn't exist in processed_folder already."""
