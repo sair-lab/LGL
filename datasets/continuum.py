@@ -48,7 +48,12 @@ class Continuum(VisionDataset):
             self.mask = np.logical_or(self.data.test_mask, self.data.train_mask)
         elif data_type == 'incremental': # class incremental; use test and train as train
             mask = np.logical_or(self.data.test_mask, self.data.train_mask)
-            self.mask = (np.logical_and((self.labels==task_type),mask)).type(torch.bool) # low efficient
+            if type(task_type)==list:
+                self.mask = torch.BoolTensor()
+                for i in task_type:
+                    self.mask =torch.cat([self.mask,np.logical_and((self.labels==i),mask).type(torch.bool)],0)
+            else:
+                self.mask = (np.logical_and((self.labels==task_type),mask)).type(torch.bool)
         elif data_type == 'test':
             self.mask = torch.BoolTensor(self.data.val_mask) # use val as test, since val is larger than test
         elif data_type == 'valid':
@@ -71,10 +76,15 @@ class Continuum(VisionDataset):
             feature: (1,f)
             label: (1,)
         '''
+        if self.k_hop == None:
+            k_hop = 1
+        else:
+            k_hop = self.k_hop
+        
         neighbors_khop = list()
         ids_khop = [self.ids[self.mask][index]]
         ## TODO: simplify this process
-        for k in range(self.k_hop):
+        for k in range(k_hop):
             ids = torch.LongTensor()
             neighbor = torch.FloatTensor()
             for i in ids_khop:
@@ -87,6 +97,9 @@ class Continuum(VisionDataset):
                 neighbor = neighbor[indices]
             ids_khop = ids ## temp ids for next level
             neighbors_khop.append(neighbor) #cat different level neighbor
+        ## reserve for some simple baseline.
+        if self.k_hop == None:
+            neighbors_khop = neighbors_khop[0]
         return self.features[self.mask][index].unsqueeze(-2), self.labels[self.mask][index], neighbors_khop
 
     def get_neighbor(self, ids):
