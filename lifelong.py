@@ -37,8 +37,8 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 
-from models import SAGE, GCN, APPNP, MLP, GAT, KLGL
-from models import LGL, AFGN PlainNet, AttnPlainNet
+from models import SAGE, GCN, APPNP, MLP, GAT
+from models import LGL, AFGN, PlainNet, AttnPlainNet, KTransCAT
 from models import LifelongRehearsal
 from datasets import continuum
 from datasets import graph_collate
