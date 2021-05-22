@@ -49,6 +49,11 @@ class ContinuumLS(VisionDataset):
         return len(self.labels[self.mask])
 
     def __getitem__(self, index):
+        if self.k_hop == None:
+            k_hop = 1
+        else:
+            k_hop = self.k_hop
+
         neighbors_khop = list()
         ids_khop = [self.mask[index]]
 
@@ -66,7 +71,7 @@ class ContinuumLS(VisionDataset):
             ids_khop = ids ## temp ids for next level
             neighbors_khop.append(neighbor) ## cat different level neighbor
 
-        if self.k_hop == 1:
+        if self.k_hop == None:
             neighbors_khop = neighbors_khop[0]
         return torch.FloatTensor(self.features[self.mask[index]]).unsqueeze(-2), self.labels[self.mask[index]], neighbors_khop
 
