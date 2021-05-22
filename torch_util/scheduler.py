@@ -35,7 +35,7 @@ class EarlyStopScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau):
     def __init__(self, optimizer, mode='min', factor=0.1, patience=10,
                     verbose=False, threshold=1e-4, threshold_mode='rel',
                     cooldown=0, min_lr=0, eps=1e-8):
-        super().__init__(optimizer, mode, factor, patience, verbose, threshold, threshold_mode, cooldown, min_lr, eps)
+        super().__init__(optimizer, mode, factor, patience, threshold, threshold_mode, cooldown, min_lr, eps, verbose)
         self.no_decrease = 0
 
     def step(self, error, epoch=None):
