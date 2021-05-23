@@ -48,4 +48,4 @@ class GraphAppnp(nn.Module):
         # momentum operation
         x = (1-self.alpha) * x + self.alpha * h
         neighbor_agg = [((1 - self.alpha) * n_agg +  self.alpha * n) for (n_agg,n) in zip(neighbor_agg, neighbor)]
-        return x, neighbor
+        return x, neighbor_agg
