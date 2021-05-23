@@ -114,10 +114,11 @@ if __name__ == '__main__':
     parser.add_argument("--seed", type=int, default=0, help='Random seed.')
     parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
     parser.add_argument("--k", type=int, default=None, help='khop.')
-    parser. add_argument("--hidden", type=int, nargs="+", default=[64,32])
-    parser. add_argument("--drop", type=float, nargs="+", default=[0,0])
+    parser.add_argument("--hidden", type=int, nargs="+", default=[10,10])
+    parser.add_argument("--drop", type=float, nargs="+", default=[0,0])
     args = parser.parse_args(); print(args)
     torch.manual_seed(args.seed)
+    torch.autograd.set_detect_anomaly(True)
 
     # Datasets
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop=args.k)
