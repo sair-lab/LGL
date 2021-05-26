@@ -49,7 +49,7 @@ warnings.filterwarnings("ignore")
 
 nets = {'sage':SAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat':AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
-def performance(loader, net, device, k = None):
+def performance(loader, net, device, k):
     net.eval()
     correct, total = 0, 0
     with torch.no_grad():
@@ -133,10 +133,10 @@ if __name__ == "__main__":
         exit()
 
     Net = nets[args.model.lower()]
-    if args.model.lower() in ['klgl', 'kcat', 'ktranscat']:
-        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop).to(args.device)
+    if args.model.lower() in ['ktranscat', 'ktranscat']:
+        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop)
     else:
-        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop).to(args.device)
+        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop)
     evaluation_metrics = []
     num_parameters = count_parameters(net)
     print('number of parameters:', num_parameters)
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
             net.observe(inputs, targets, neighbor, batch_idx%args.jump==0)
 
-        train_acc, test_acc = performance(incremental_loader, net, args.device), performance(test_loader, net, args.device)
+        train_acc, test_acc = performance(incremental_loader, net, args.device, k=args.k), performance(test_loader, net, args.device, k=args.k)
         evaluation_metrics.append([i, len(incremental_data), train_acc, test_acc])
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
 
@@ -192,8 +192,8 @@ if __name__ == "__main__":
     if args.eval:
         train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop = args.k)
         train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
-        test_acc, train_acc = performance(test_loader, net, args.device), performance(train_loader, net, args.device)
-        valid_acc = performance(valid_loader, net, args.device)
+        test_acc, train_acc = performance(test_loader, net, args.device, k = args.k), performance(train_loader, net, args.device, k = args.k)
+        valid_acc = performance(valid_loader, net, args.device, k=args.k)
         with open(args.eval+'-acc.txt','a') as file:
             file.write('number of parameters:%i\n'%num_parameters)
             file.write('| task | train_acc | test_acc | valid_acc |\n')

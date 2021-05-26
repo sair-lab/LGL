@@ -40,7 +40,7 @@ from datasets import continuum
 from lifelong import performance
 from datasets import graph_collate
 from models import LGL, AFGN, PlainNet, AttnPlainNet
-from models import KTransCAT, attnKTransCAT
+from models import KTransCAT, AttnKTransCAT
 from models import SAGE, GCN, APPNP, MLP, GAT
 from models import LifelongSAGE, LifelongRehearsal
 from torch_util import count_parameters
@@ -49,7 +49,7 @@ sys.path.append('models')
 warnings.filterwarnings("ignore")
 torch.autograd.set_detect_anomaly(True)
 
-nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'ktranscat': attnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
+nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat': AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
 
 if __name__ == "__main__":
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         net = torch.load(args.load, map_location=args.device)
     else:
         Net = nets[args.model.lower()]
-        if args.model.lower() in ['ktranscat']:
+        if args.model.lower() in ['ktranscat', 'attnktranscat']:
             net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop)
         else:
             net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop)
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
             if args.eval and batch_idx%args.sample_rate*10 == 0:
                 running_loss = net.running_loss/((batch_idx+1))
-                test_acc = performance(test_loader, net, args.device)
+                test_acc = performance(test_loader, net, args.device, k=args.k)
                 with open(args.eval+'-acc.txt','a') as file:
                     file.write((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
                     print((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
@@ -112,11 +112,11 @@ if __name__ == "__main__":
         if args.save is not None:
             torch.save(net, args.save)
 
-    test_acc, train_acc, valid_acc = performance(test_loader, net, args.device), performance(train_loader, net, args.device), performance(valid_loader, net, args.device)
+    test_acc, train_acc, valid_acc = performance(test_loader, net, args.device, k=args.k), performance(train_loader, net, args.device), performance(valid_loader, net, args.device, k=args.k)
     print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
 
     if args.eval:
-        valid_acc = performance(valid_loader, net, args.device)
+        valid_acc = performance(valid_loader, net, args.device, k=args.k)
         with open(args.eval+'-acc.txt','a') as file:
             file.write("| train_acc | test_acc | valid_acc |\n")
             file.write((str([train_acc, test_acc, valid_acc])+'\n').replace('[','').replace(']',''))

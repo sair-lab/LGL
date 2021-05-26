@@ -40,7 +40,7 @@ class LGL(nn.Module):
         self.ismlp = ismlp
         c = [1, 4, hidden[1]]
         f = [feat_len, int(hidden[0]/c[1]), 1]
-            
+
         self.feat1 = FeatTrans1d(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign(),  nn.Dropout(p=dropout[0]))
         self.feat2 = FeatTrans1d(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
@@ -64,7 +64,6 @@ class AFGN(nn.Module):
         super(AFGN, self).__init__()
         c = [1, 4, hidden[1]]
         f = [feat_len, int(hidden[0]/c[1]), 1]
-            
         self.feat1 = AttnFeatTrans1dSoft(in_channels=c[0], in_features=f[0], out_channels=c[1], out_features=f[1])
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(c[1]), nn.Softsign(),  nn.Dropout(p=dropout[0]))
         self.feat2 = AttnFeatTrans1dSoft(in_channels=c[1], in_features=f[1], out_channels=c[2], out_features=f[2])
@@ -72,7 +71,7 @@ class AFGN(nn.Module):
         self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(c[2]*f[2], num_class))
 
     def forward(self, x, neighbor):
-        
+
         x, neighbor = self.feat1(x, neighbor)
         x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
         x, neighbor = self.feat2(x, neighbor)
@@ -129,7 +128,7 @@ class KLGL(nn.Module):
         x = self.acvt2(x)
         return self.classifier(x)
 
-            
+
 class LifelongRehearsal(nn.Module):
     def __init__(self, args, BackBone, feat_len, num_class, k = None, hidden = [64,32], drop = [0,0]):
         super(LifelongRehearsal, self).__init__()
@@ -137,7 +136,7 @@ class LifelongRehearsal(nn.Module):
         if not k:
             self.backbone = BackBone(feat_len, num_class, hidden = hidden, dropout = drop)
         else:
-            self.backbone = BackBone(feat_len, num_class, k, hidden = hidden, dropout = drop)
+            self.backbone = BackBone(feat_len, num_class, k=k, hidden = hidden, dropout = drop)
         self.backbone = self.backbone.to(args.device)
         self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))
         self.register_buffer('inputs', torch.Tensor(0, 1, feat_len))
