@@ -40,8 +40,8 @@ from datasets import continuum
 from lifelong import performance
 from datasets import graph_collate
 from models import LGL, AFGN, PlainNet, AttnPlainNet
-from models import KTransCAT
-from models import SAGE, GCN, APPNP, MLP, GAT, APP
+from models import KTransCAT, attnKTransCAT
+from models import SAGE, GCN, APPNP, MLP, GAT
 from models import LifelongSAGE, LifelongRehearsal
 from torch_util import count_parameters
 
@@ -49,7 +49,7 @@ sys.path.append('models')
 warnings.filterwarnings("ignore")
 torch.autograd.set_detect_anomaly(True)
 
-nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet, 'app':APP}
+nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'ktranscat': attnKTransCAT 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
 
 if __name__ == "__main__":
@@ -100,12 +100,6 @@ if __name__ == "__main__":
 
         print(net)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
-#             inputs, targets = inputs.to(args.device), targets.to(args.device)
-#             ## take the neighbor with k
-#             if not args.k:
-#                 neighbor = [element.to(args.device) for element in neighbor]
-#             else:
-#                 neighbor = [[element.to(args.device) for element in item]for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
             if args.eval and batch_idx%args.sample_rate*10 == 0:

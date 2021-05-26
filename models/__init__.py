@@ -1,9 +1,9 @@
 from .models import Net, PlainNet, AttnPlainNet
 from .lgl import LGL, KLGL, AFGN, KCAT, LifelongRehearsal
-from .KTransCat import KTransCAT, LifelongKTransCAT
+from .KTransCat import KTransCAT, AttnKTransCAT
 from .sage import SAGE, LifelongSAGE
 from .GCN import GCN
-from .APPNP import APPNP
+from .APPNP import APPNP,APP
 from .MLP import MLP
 from .GAT import GAT
 
