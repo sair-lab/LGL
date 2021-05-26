@@ -138,7 +138,7 @@ class LifelongRehearsal(nn.Module):
             self.backbone = BackBone(feat_len, num_class, hidden = hidden, dropout = drop)
         else:
             self.backbone = BackBone(feat_len, num_class, k, hidden = hidden, dropout = drop)
-
+        self.backbone = self.backbone.to(args.device)
         self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))
         self.register_buffer('inputs', torch.Tensor(0, 1, feat_len))
         self.register_buffer('targets', torch.LongTensor(0))
@@ -155,28 +155,41 @@ class LifelongRehearsal(nn.Module):
 
     def observe(self, inputs, targets, neighbor, replay=True):
         self.train()
+        self.sample(inputs, targets, neighbor)
+        
         for i in range(self.args.iteration):
             self.optimizer.zero_grad()
+            inputs, targets, neighbor = self.todevice(inputs, targets, neighbor, device = self.args.device)
             outputs = self.forward(inputs, neighbor)
             loss = self.criterion(outputs, targets)
             loss.backward()
             self.optimizer.step()
         self.running_loss+=loss
 
-        self.sample(inputs, targets, neighbor)
         if replay:
             L = torch.randperm(self.inputs.size(0))
             minibatches = [L[n:n+self.args.batch_size] for n in range(0, len(L), self.args.batch_size)]
             for index in minibatches:
                 self.optimizer.zero_grad()
                 inputs, targets, neighbor = self.inputs[index], self.targets[index], [self.neighbor[i] for i in index.tolist()]
+                inputs, targets, neighbor = self.todevice(inputs, targets, neighbor, device = self.args.device)
                 outputs = self.forward(inputs, neighbor)
                 loss = self.criterion(outputs, targets)
                 loss.backward()
                 self.optimizer.step()
 
+    def todevice(self, inputs, targets, neighbor, device="cpu"):
+        inputs, targets = inputs.to(device), targets.to(device)
+        ## take the neighbor with k
+        if not self.args.k:
+            neighbor = [element.to(device) for element in neighbor]
+        else:
+            neighbor = [[element.to(device) for element in item]for item in neighbor]
+        return inputs, targets, neighbor
+
     @torch.no_grad()
     def uniform_sample(self, inputs, targets, neighbor):
+        inputs, targets, neighbor = self.todevice(inputs, targets, neighbor)
         self.inputs = torch.cat((self.inputs, inputs), dim=0)
         self.targets = torch.cat((self.targets, targets), dim=0)
         self.neighbor += neighbor

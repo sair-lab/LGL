@@ -115,6 +115,7 @@ if __name__ == "__main__":
     parser. add_argument("--drop", type=float, nargs="+", default=[0,0])
     parser.add_argument("--merge", type=int, default=1, help='Merge some class if needed.')
     args = parser.parse_args(); print(args)
+    torch.autograd.set_detect_anomaly(True)
     torch.manual_seed(args.seed)
 
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True ,k_hop = args.k)
@@ -158,11 +159,6 @@ if __name__ == "__main__":
         incremental_loader = Data.DataLoader(dataset=incremental_data, batch_size=args.batch_size, shuffle=True, collate_fn=graph_collate, drop_last=True)
 
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(incremental_loader)):
-            inputs, targets = inputs.to(args.device), targets.to(args.device)
-            if not args.k:
-                neighbor = [element.to(args.device) for element in neighbor]
-            else:
-                neighbor = [[item.to(args.device) for item in element] for element in neighbor]
             net.observe(inputs, targets, neighbor, batch_idx%args.jump==0)
 
         train_acc, test_acc = performance(incremental_loader, net, args.device), performance(test_loader, net, args.device)

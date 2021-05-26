@@ -41,14 +41,15 @@ from lifelong import performance
 from datasets import graph_collate
 from models import LGL, AFGN, PlainNet, AttnPlainNet
 from models import KTransCAT
-from models import SAGE, GCN, APPNP, MLP, GAT
+from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LifelongSAGE, LifelongRehearsal
 from torch_util import count_parameters
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
+torch.autograd.set_detect_anomaly(True)
 
-nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
+nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet, 'app':APP}
 
 
 if __name__ == "__main__":
@@ -73,6 +74,7 @@ if __name__ == "__main__":
     parser. add_argument("--hidden", type=int, nargs="+", default=[10, 10])
     parser. add_argument("--drop", type=float, nargs="+", default=[0, 0])
     args = parser.parse_args(); print(args)
+    torch.autograd.set_detect_anomaly(True)
     torch.manual_seed(args.seed)
 
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop=args.k)
@@ -92,18 +94,18 @@ if __name__ == "__main__":
     else:
         Net = nets[args.model.lower()]
         if args.model.lower() in ['ktranscat']:
-            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop).to(args.device)
+            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop)
         else:
-            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop).to(args.device)
+            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop)
 
         print(net)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
-            inputs, targets = inputs.to(args.device), targets.to(args.device)
-            ## take the neighbor with k
-            if not args.k:
-                neighbor = [element.to(args.device) for element in neighbor]
-            else:
-                neighbor = [[element.to(args.device) for element in item]for item in neighbor]
+#             inputs, targets = inputs.to(args.device), targets.to(args.device)
+#             ## take the neighbor with k
+#             if not args.k:
+#                 neighbor = [element.to(args.device) for element in neighbor]
+#             else:
+#                 neighbor = [[element.to(args.device) for element in item]for item in neighbor]
             net.observe(inputs, targets, neighbor)
 
             if args.eval and batch_idx%args.sample_rate*10 == 0:
