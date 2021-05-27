@@ -41,7 +41,7 @@ from lifelong import performance
 from datasets import graph_collate
 from models import LGL, AFGN, PlainNet, AttnPlainNet
 from models import KTransCAT, AttnKTransCAT
-from models import SAGE, GCN, APPNP, MLP, GAT
+from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LifelongSAGE, LifelongRehearsal
 from torch_util import count_parameters
 
@@ -49,7 +49,7 @@ sys.path.append('models')
 warnings.filterwarnings("ignore")
 torch.autograd.set_detect_anomaly(True)
 
-nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat': AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
+nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat': AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'app':APP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
 
 if __name__ == "__main__":
@@ -116,7 +116,6 @@ if __name__ == "__main__":
     print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
 
     if args.eval:
-        valid_acc = performance(valid_loader, net, args.device, k=args.k)
         with open(args.eval+'-acc.txt','a') as file:
             file.write("| train_acc | test_acc | valid_acc |\n")
             file.write((str([train_acc, test_acc, valid_acc])+'\n').replace('[','').replace(']',''))

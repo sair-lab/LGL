@@ -37,7 +37,7 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 
-from models import SAGE, GCN, APPNP, MLP, GAT
+from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LGL, AFGN, PlainNet, AttnPlainNet, KTransCAT, AttnKTransCAT
 from models import LifelongRehearsal
 from datasets import continuum
@@ -47,7 +47,7 @@ from torch_util import count_parameters, Timer
 sys.path.append('models')
 warnings.filterwarnings("ignore")
 
-nets = {'sage':SAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat':AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
+nets = {'sage':SAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat':AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'app':APP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
 def performance(loader, net, device, k):
     net.eval()

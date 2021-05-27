@@ -36,16 +36,16 @@ import torch.nn as nn
 import torch.utils.data as Data
 from torch.autograd import Variable
 
-from models import SAGE, GCN, APPNP, MLP, GAT
+from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LGL, AFGN, PlainNet, AttnPlainNet
-from models import KTransCAT
+from models import KTransCAT, AttnKTransCAT
 from lifelong import performance
 from datasets import continuum, graph_collate
 from torch_util import count_parameters, EarlyStopScheduler
 import time 
 
 ## AFGN is LGL with attention; AttnPlainNet is the PlainNet with attention
-nets = {'sage':SAGE, 'lgl': LGL, 'ktranscat':KTransCAT, 'gcn':GCN, 'appnp':APPNP, 'mlp':MLP, 'gat':GAT, 'afgn':AFGN, 'plain':PlainNet, 'attnplain':AttnPlainNet}
+nets = {'sage':SAGE, 'lgl': LGL, 'ktranscat':KTransCAT, 'attnktranscat':AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'app':APP, 'mlp':MLP, 'gat':GAT, 'afgn':AFGN, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
 def performance(loader, net, device):
     net.eval()
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     parser.add_argument("--factor", type=float, default=0.1, help="ReduceLROnPlateau factor")
     parser.add_argument("--min-lr", type=float, default=0.001, help="minimum lr for ReduceLROnPlateau")
-    parser.add_argument("--patience", type=int, default=5, help="patience for Early Stop")
+    parser.add_argument("--patience", type=int, default=3, help="patience for Early Stop")
     parser.add_argument("--batch-size", type=int, default=10, help="number of minibatch size")
     parser.add_argument("--milestones", type=int, default=15, help="milestones for applying multiplier")
     parser.add_argument("--epochs", type=int, default=20, help="number of training epochs")
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     else:
         Net = nets[args.model.lower()]
         
-        if args.model.lower() == 'ktranscat':
+        if args.model.lower() in ['ktranscat', 'attnktranscat']:
             net = Net(feat_len=train_data.feat_len, k=args.k, num_class=train_data.num_class).to(args.device)
         else:
             assert(args.k == None)
