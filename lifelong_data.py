@@ -100,9 +100,9 @@ if __name__ == "__main__":
 
         print(net)
         for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
-            net.observe(inputs, targets, neighbor)
+            net.observe(inputs, targets, neighbor, batch_idx%args.jump==0)
 
-            if args.eval and batch_idx%args.sample_rate*10 == 0:
+            if args.eval and batch_idx%args.sample_rate*10 == args.sample_rate*10-1:
                 running_loss = net.running_loss/((batch_idx+1))
                 test_acc = performance(test_loader, net, args.device, k=args.k)
                 with open(args.eval+'-acc.txt','a') as file:
