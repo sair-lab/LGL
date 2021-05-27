@@ -112,7 +112,7 @@ if __name__ == "__main__":
         if args.save is not None:
             torch.save(net, args.save)
 
-    test_acc, train_acc, valid_acc = performance(test_loader, net, args.device, k=args.k), performance(train_loader, net, args.device), performance(valid_loader, net, args.device, k=args.k)
+    test_acc, train_acc, valid_acc = performance(test_loader, net, args.device, k=args.k), performance(train_loader, net, args.device, k=args.k), performance(valid_loader, net, args.device, k=args.k)
     print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
 
     if args.eval:
