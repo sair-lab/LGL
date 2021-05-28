@@ -11,13 +11,13 @@ class SAGE(nn.Module):
     GraphSAGE: Inductive Representation Learning on Large Graphs, NIPS 2017
     https://arxiv.org/pdf/1706.02216.pdf
     '''
-    def __init__(self, feat_len, num_class, hidden=128, aggr='gcn', k=1):
+    def __init__(self, feat_len, num_class, hidden=[128,128], drop_out=[0,0], aggr='gcn', k=1):
         super().__init__()
         aggrs = {'pool':PoolAggregator, 'mean':MeanAggregator, 'gcn':GCNAggregator}
         Aggregator = aggrs[aggr]
-        self.tran1 = Aggregator(feat_len, hidden)
+        self.tran1 = Aggregator(feat_len, hidden[0])
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
-        self.tran2 = Aggregator(hidden, hidden)
+        self.tran2 = Aggregator(hidden[0], hidden[1])
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
         self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(hidden, num_class))
 
