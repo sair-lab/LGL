@@ -26,8 +26,14 @@ class ContinuumLS(VisionDataset):
 
         self.features = torch.FloatTensor(feats)
         self.feat_len = feats.shape[1]
+
         self.labels = torch.LongTensor(list(class_map.values()))
-        self.num_class = int(torch.max(self.labels) - torch.min(self.labels))+1
+        if name in ["amazon"]:
+            self.num_class = self.labels.shape[1]
+            _, self.labels = self.labels.max(dim = 1)
+        else:
+            self.num_class = int(torch.max(self.labels) - torch.min(self.labels))+1
+        print("num_class", self.num_class)
 
         if data_type == 'train':
             self.mask = role["tr"]
@@ -57,7 +63,7 @@ class ContinuumLS(VisionDataset):
         neighbors_khop = list()
         ids_khop = [self.mask[index]]
 
-        for k in range(self.k_hop):
+        for k in range(k_hop):
             ids = torch.LongTensor()
             neighbor = torch.FloatTensor()
             for i in ids_khop:
