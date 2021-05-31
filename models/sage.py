@@ -19,7 +19,7 @@ class SAGE(nn.Module):
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
         self.tran2 = Aggregator(hidden[0], hidden[1])
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
-        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(hidden, num_class))
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(hidden[1], num_class))
 
     def forward(self, x, neighbor):
         ## the neighbor should be (N,n,c,f)
