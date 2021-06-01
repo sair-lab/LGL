@@ -24,6 +24,8 @@ class ContinuumOGB(VisionDataset):
         self.src = torch.cat((self.src, self_loop), 0)
         self.dst = torch.cat((self.dst, self_loop), 0)
 
+        self.process_check_list()
+
         if data_type == 'incremental':
             mask = torch.LongTensor(self.idx_split["train"])#TODO what if we want testing with certain task
             if type(task_type)==list:
@@ -64,7 +66,7 @@ class ContinuumOGB(VisionDataset):
             neighbor = torch.FloatTensor()
             for i in ids_khop:
                 ## save the index of neighbors
-                ids = torch.cat((ids, self.dst[self.src==i]),0)
+                ids = torch.cat((ids, torch.LongTensor(self.check_list[i])),0)
                 ids = torch.cat((ids,torch.tensor(i).unsqueeze(0)), 0)
                 neighbor = torch.cat((neighbor, self.get_neighbor(ids)),0)
             ## TODO random selection in pytorch is tricky
@@ -80,6 +82,16 @@ class ContinuumOGB(VisionDataset):
 
     def get_neighbor(self, ids):
         return self.features[ids].unsqueeze(-2)
+
+    def process_check_list(self):
+        if os.path.isfile(os.path.join(self.root, self.name+"check-list.pt")):
+            self.check_list = torch.load(os.path.join(self.root, self.name+"check-list.pt"))
+        else:
+            self.check_list = []
+            for i in tqdm.tqdm(range(self.data["node_feat"].shape[0])):
+                self.check_list.append(self.dst[self.src==i])
+            torch.save(self.check_list, os.path.join(self.root, self.name+"check-list.pt"))
+        
     
     def download(self):
         """Download data if it doesn't exist in processed_folder already."""
