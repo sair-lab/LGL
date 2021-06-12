@@ -34,7 +34,14 @@ class ContinuumOGB(VisionDataset):
                     self.mask =torch.cat([self.mask,mask[self.labels[mask]==i]],0)
             else:
                 self.mask = mask[self.labels[mask]==task_type]
-
+        elif data_type == 'incremental_test':
+            mask = torch.LongTensor(self.idx_split["valid"])#TODO what if we want testing with certain task
+            if type(task_type)==list:
+                self.mask = torch.LongTensor()
+                for i in task_type:
+                    self.mask =torch.cat([self.mask,mask[self.labels[mask]==i]],0)
+            else:
+                self.mask = mask[self.labels[mask]==task_type]
         elif data_type in ['train','test','valid']:
             self.mask = torch.LongTensor(self.idx_split[data_type])
         else:
