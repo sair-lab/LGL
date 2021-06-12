@@ -80,9 +80,7 @@ class ContinuumOGB(VisionDataset):
         if os.path.isfile(os.path.join(self.root, self.name+"check-list.pt")):
             self.check_list = torch.load(os.path.join(self.root, self.name+"check-list.pt"))
         else:
-            self.check_list = []
-            for i in tqdm.tqdm(range(self.data["node_feat"].shape[0])):
-                self.check_list.append(self.dst[self.src==i])
+            self.check_list = [self.dst[self.src==i] for i in range(self.data["node_feat"].shape[0])]
             torch.save(self.check_list, os.path.join(self.root, self.name+"check-list.pt"))
         
     

@@ -11,7 +11,7 @@ class SAGE(nn.Module):
     GraphSAGE: Inductive Representation Learning on Large Graphs, NIPS 2017
     https://arxiv.org/pdf/1706.02216.pdf
     '''
-    def __init__(self, feat_len, num_class, hidden=[128,128], drop_out=[0,0], aggr='gcn', k=1):
+    def __init__(self, feat_len, num_class, hidden=[128,128], dropout=[0,0], aggr='gcn', k=1):
         super().__init__()
         aggrs = {'pool':PoolAggregator, 'mean':MeanAggregator, 'gcn':GCNAggregator}
         Aggregator = aggrs[aggr]
@@ -23,7 +23,6 @@ class SAGE(nn.Module):
 
     def forward(self, x, neighbor):
         ## the neighbor should be (N,n,c,f)
-        neighbor = [item[0] for item in neighbor]
         x, neighbor = self.tran1(x, neighbor)
         x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
         x, neighbor = self.tran2(x, neighbor)
