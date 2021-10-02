@@ -31,13 +31,13 @@ import tqdm
 import copy
 import torch
 import os.path
-import argparse
+import configargparse
 import warnings
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 
-from models import SAGE, GCN, APPNP, MLP, GAT, APP
+from models import SAGE, GCN, MLP, GAT, APP, APPNP
 from models import LGL, AFGN, PlainNet, AttnPlainNet, KTransCAT, AttnKTransCAT
 from models import LifelongRehearsal
 from datasets import continuum
@@ -93,7 +93,8 @@ def accuracy(net, loader, device, num_class):
 if __name__ == "__main__":
 
     # Arguements
-    parser = argparse.ArgumentParser(description='Feature Graph Networks')
+    parser = configargparse.ArgumentParser()
+    parser.add_argument('-c', '--config', is_config_file=True, help='config file path')
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
@@ -106,13 +107,13 @@ if __name__ == "__main__":
     parser.add_argument("--jump", type=int, default=1, help="reply samples")
     parser.add_argument("--iteration", type=int, default=10, help="number of training iteration")
     parser.add_argument("--memory-size", type=int, default=500, help="number of samples")
-    parser.add_argument("--seed", type=int, default=0, help='Random seed.')
+    parser.add_argument("--seed", type=int, default=1, help='Random seed.')
     parser.add_argument("-p", "--plot", action="store_true", help="increase output verbosity")
     parser.add_argument("--eval", type=str, default=None, help="the path to eval the acc")
     parser.add_argument("--sample-rate", type=int, default=50, help="sampling rate for test acc, if ogb datasets please set it to 200")
     parser.add_argument("--k", type=int, default=None, help='the level of k hop.')
-    parser. add_argument("--hidden", type=int, nargs="+", default=[64,32])
-    parser. add_argument("--drop", type=float, nargs="+", default=[0,0])
+    parser.add_argument("--hidden", type=int, nargs="+", default=[64,32])
+    parser.add_argument("--drop", type=float, nargs="+", default=[0,0])
     parser.add_argument("--merge", type=int, default=1, help='Merge some class if needed.')
     args = parser.parse_args(); print(args)
     torch.autograd.set_detect_anomaly(True)
@@ -124,14 +125,6 @@ if __name__ == "__main__":
     valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True, k_hop = args.k)
     valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
-    if args.load is not None:
-        train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop = args.k)
-        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
-        net = torch.load(args.load, map_location=args.device)
-        train_acc, test_acc, valid_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device), performance(valid_loader, net, args.device)
-        print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
-        exit()
-
     Net = nets[args.model.lower()]
     if args.model.lower() in ['ktranscat', 'ktranscat']:
         net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop)
@@ -140,7 +133,14 @@ if __name__ == "__main__":
     evaluation_metrics = []
     num_parameters = count_parameters(net)
     print('number of parameters:', num_parameters)
-    print(net)
+
+    if args.load is not None:
+        train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop = args.k)
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
+        net.backbone.load_state_dict(torch.load(args.load, map_location=args.device))
+        train_acc, test_acc, valid_acc = performance(train_loader, net, args.device, k=args.k),  performance(test_loader, net, args.device, k=args.k), performance(valid_loader, net, args.device, k=args.k)
+        print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
+        exit()
 
     if args.eval:
         with open(args.eval+'-acc.txt','a') as file:
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         print("Train Acc: %.3f, Test Acc: %.3f"%(train_acc, test_acc))
 
         if args.save is not None:
-            torch.save(net, args.save)
+            torch.save(net.backbone.state_dict(), args.save)
 
         if args.eval: 
             with open(args.eval+'-acc.txt','a') as file:
