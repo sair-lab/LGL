@@ -39,28 +39,14 @@ class APPNP(nn.Module):
         x[torch.isnan(x)] = 0
         return self.classifier(x).squeeze(1)
 
-
-class GraphAppnp(nn.Module):
-    def __init__(self, alpha):
-        super().__init__()
-        self.alpha = alpha
-
-    def forward(self, x, neighbor_agg, h, neighbor):
-        # operate adj @ x for the subgraph
-        x, neighbor_agg = sum_aggregation(x, neighbor_agg)
-        
-        # momentum operation
-        x = (1-self.alpha) * x + self.alpha * h
-        neighbor_agg = [((1 - self.alpha) * n_agg +  self.alpha * n) for (n_agg,n) in zip(neighbor_agg, neighbor)]
-        return x, neighbor_agg
-
-    
     
 class APP(nn.Module):
     '''
     APPNP: ICLR 2019
     Predict then Propagate: Graph Neural Networks Meet Personalized Pagerank
     https://arxiv.org/pdf/1810.05997.pdf
+    
+    A modified version for the graph lifelong learning
     '''
     def __init__(self, feat_len, num_class, hidden=[64,32], dropout=[0], alpha=0.1):
         super().__init__()
@@ -98,6 +84,19 @@ class GraphApp(nn.Module):
         
         # momentum operation
         x = (1-self.alpha) * x + self.alpha * h
-#         neighbor_agg = [((1 - self.alpha) * n_agg +  self.alpha * n) for (n_agg,n) in zip(neighbor_agg, neighbor)]
         return x, neighbor
 
+
+class GraphAppnp(nn.Module):
+    def __init__(self, alpha):
+        super().__init__()
+        self.alpha = alpha
+
+    def forward(self, x, neighbor_agg, h, neighbor):
+        # operate adj @ x for the subgraph
+        x, neighbor_agg = sum_aggregation(x, neighbor_agg)
+        
+        # momentum operation
+        x = (1-self.alpha) * x + self.alpha * h
+        neighbor_agg = [((1 - self.alpha) * n_agg +  self.alpha * n) for (n_agg,n) in zip(neighbor_agg, neighbor)]
+        return x, neighbor_agg

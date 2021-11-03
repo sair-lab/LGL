@@ -130,3 +130,9 @@ dmypy.json
 
 .vscode
 loads
+
+experiment/
+pretrained_model/
+data/
+scripts/
+doc/

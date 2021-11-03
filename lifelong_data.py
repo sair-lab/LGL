@@ -42,14 +42,15 @@ from datasets import graph_collate
 from models import LGL, AFGN, PlainNet, AttnPlainNet
 from models import KTransCAT, AttnKTransCAT
 from models import SAGE, GCN, APPNP, MLP, GAT, APP
-from models import LifelongSAGE, LifelongRehearsal
+from models import LifelongRehearsal
 from torch_util import count_parameters
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
 torch.autograd.set_detect_anomaly(True)
 
-nets = {'sage':LifelongSAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat': AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'app':APP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
+nets = {'sage':SAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat': AttnKTransCAT, 
+'gcn':GCN, 'appnp':APPNP, 'app':APP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
 
 
 if __name__ == "__main__":

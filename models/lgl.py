@@ -29,6 +29,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as nf
+from models.KTransCat import KTransCAT
 
 from models.layer import FeatBrd1d, FeatTrans1d, FeatTransKhop, FeatTransKCat, FeatTransKhop, Mlp, AttnFeatTrans1d, AttnFeatTrans1dSoft
 
@@ -37,7 +38,6 @@ class LGL(nn.Module):
     def __init__(self, feat_len, num_class, hidden = [64, 32], dropout = [0,0]):
         ## the Flag ismlp will encode without neighbor
         super(LGL, self).__init__()
-        self.ismlp = ismlp
         c = [1, 4, hidden[1]]
         f = [feat_len, int(hidden[0]/c[1]), 1]
 
@@ -54,7 +54,6 @@ class LGL(nn.Module):
         x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
         x, neighbor = self.feat2(x, neighbor)
         x = self.acvt2(x)
-
         return self.classifier(x)
 
 

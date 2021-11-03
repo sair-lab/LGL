@@ -29,6 +29,7 @@
 
 import time
 import torch
+import tqdm
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -63,3 +64,23 @@ class Timer:
         self.duration = time.time()-self.start_time
         self.start()
         return self.duration
+
+
+def performance(loader, net, device, k):
+    net.eval()
+    correct, total = 0, 0
+    with torch.no_grad():
+        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
+            if torch.cuda.is_available():
+                inputs, targets = inputs.to(device), targets.to(device)
+                if not k:
+                    neighbor = [element.to(device) for element in neighbor]
+                else:
+                    neighbor = [[element.to(device) for element in item]for item in neighbor]
+
+            outputs = net(inputs, neighbor)
+            _, predicted = torch.max(outputs.data, 1)
+            total += targets.size(0)
+            correct += predicted.eq(targets.data).cpu().sum().item()
+        acc = correct/total
+    return acc

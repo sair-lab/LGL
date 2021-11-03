@@ -30,7 +30,7 @@ import tqdm
 import copy
 import torch
 import os.path
-import argparse
+import configargparse
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
@@ -38,33 +38,14 @@ from torch.autograd import Variable
 
 from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LGL, AFGN, PlainNet, AttnPlainNet
-from models import KTransCAT, AttnKTransCAT
+from models import KTransCAT, AttnKTransCAT, AttnAPPTrans, AttnAPPNPTrans
 from lifelong import performance
 from datasets import continuum, graph_collate
-from torch_util import count_parameters, EarlyStopScheduler
+from torch_util import count_parameters, EarlyStopScheduler, performance
 import time 
 
 ## AFGN is LGL with attention; AttnPlainNet is the PlainNet with attention
 nets = {'sage':SAGE, 'lgl': LGL, 'ktranscat':KTransCAT, 'attnktranscat':AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'app':APP, 'mlp':MLP, 'gat':GAT, 'afgn':AFGN, 'plain':PlainNet, 'attnplain':AttnPlainNet}
-
-def performance(loader, net, device):
-    net.eval()
-    correct, total = 0, 0
-    with torch.no_grad():
-        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
-            if torch.cuda.is_available():
-                inputs, targets = inputs.to(device), targets.to(device)
-                if not args.k:
-                    neighbor = [element.to(device) for element in neighbor]
-                else:
-                    neighbor = [[element.to(device) for element in item]for item in neighbor]
-
-            outputs = net(inputs, neighbor)
-            _, predicted = torch.max(outputs.data, 1)
-            total += targets.size(0)
-            correct += predicted.eq(targets.data).cpu().sum().item()
-        acc = correct/total
-    return acc
 
 def train(loader, net, criterion, optimizer, device):
     net.train()
@@ -93,7 +74,8 @@ def train(loader, net, criterion, optimizer, device):
 
 if __name__ == '__main__':
     # Arguements
-    parser = argparse.ArgumentParser(description='Feature Graph Networks')
+    parser = configargparse.ArgumentParser()
+    parser.add_argument('-c', '--config', is_config_file=True, help='config file path')
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="learning rate")
     parser.add_argument("--model", type=str, default='LGL', help="LGL or SAGE")
@@ -130,7 +112,7 @@ if __name__ == '__main__':
     
     if args.load is not None:
         net = torch.load(args.load, map_location=args.device)
-        train_acc, test_acc, valid_acc = performance(train_loader, net, args.device),  performance(test_loader, net, args.device), performance(valid_loader, net, args.device)
+        train_acc, test_acc, valid_acc = performance(train_loader, net, args.device, args.k),  performance(test_loader, net, args.device, args.k), performance(valid_loader, net, args.device, args.k)
         print("Train Acc: %.5f, Test Acc: %.5f, Valid Acc: %.5f"%(train_acc, test_acc, valid_acc))
         exit()
     else:
@@ -159,7 +141,7 @@ if __name__ == '__main__':
     best_acc = 0
     for epoch in range(args.epochs):
         train_loss, train_acc = train(train_loader, net, criterion, optimizer, args.device)
-        test_acc = performance(test_loader, net, args.device) # validate
+        test_acc = performance(test_loader, net, args.device, args.k) # validate
         print("epoch: %d, train_loss: %.4f, train_acc: %.4f, test_acc: %.4f"
                 % (epoch, train_loss, train_acc, test_acc))
         if args.eval:
@@ -177,7 +159,7 @@ if __name__ == '__main__':
             print('Early Stopping!')
             break
 
-    train_acc, test_acc, valid_acc = performance(train_loader, best_net, args.device), performance(test_loader, best_net, args.device), performance(valid_loader, best_net, args.device)
+    train_acc, test_acc, valid_acc = performance(train_loader, best_net, args.device, args.device, args.k), performance(test_loader, best_net, args.device, args.k), performance(valid_loader, best_net, args.device, args.k)
     print('train_acc: %.4f, test_acc: %.4f, valid_acc: %.4f'%(train_acc, test_acc, valid_acc))
         
     if args.eval:

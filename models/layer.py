@@ -290,7 +290,7 @@ class AttnFeatTrans1d(nn.Module):
 
     def feature_adjacency(self, x, y):
         B, C, F = x.shape
-        attn = w = [torch.einsum('ci,nkl->n', self.att1(x[i]), self.att2(y[i])) for i in range(B)]
+        w = [torch.einsum('ci,nkl->n', self.att1(x[i]), self.att2(y[i])) for i in range(B)]
         fadj = torch.stack([torch.einsum("ca, ncb, n -> cab", x[i], y[i], w[i]) for i in range(B)])
         fadj += fadj.transpose(-2, -1)
         return self.row_normalize(self.sgnroot(fadj))
@@ -424,4 +424,136 @@ class AttnFeatTransKCat(nn.Module):
         x = x / (x.abs().sum(-2, keepdim=True) + 1e-7)
         x[torch.isnan(x)] = 0
         return x
+
+
+class AttnFeatTransAPP(nn.Module):
+    '''
+    Feature Transforming Layer for K-hop caten 1D features.
+    Input size should be (n_batch, in_channels, in_features)
+    Output size is (n_batch, out_channels, out_features)
+    This will encode the k-hop into the channel of the nodex
+    Args:
+        in_channels (int): number of feature input channels
+        k-hop (int): number of the k level.
+        out_channels (int): number of feature output channels
+        in_features (int): dimension of input features
+        out_features (int): dimension of output features
+    '''
+    def __init__(self, in_channels, khop, in_features, out_channels, out_features, alpha=0.1):
+        super(AttnFeatTransAPP, self).__init__()
+        self.khop = khop
+        self.alpha = alpha
+        self.actv = nn.Sequential(nn.BatchNorm1d(out_channels), nn.Softsign())
+        self.out_channels, self.out_features = out_channels, out_features
+        self.in_channels, self.in_features = in_channels, in_features
+        # Taking advantage of parallel efficiency of nn.Conv1d
+        self.conv = nn.Conv1d(self.in_channels, out_channels*out_features, kernel_size = self.in_features, bias=False)
+        self.att1 = nn.Linear(out_features, out_channels, bias=False)
+        self.att2 = nn.Linear(out_features, out_channels, bias=False)
+        self.norm = nn.Sequential(nn.Softmax(dim=0))
+
+    def forward(self, x, neighbor):
+
+        h = self.trans(x)
+        neighbor = [self.trans(n) for n in neighbor]
+        
+        adj = self.feature_adjacency(h, neighbor)
+        x = self.APP(h, adj, h)
+        #neighbor = [self.APP(neighbor[i], adj[i:i+1], neighbor[i]) for i in range(x.size(0))] ## TODO remove this?
+        neighbor_app = [(adj[i:i+1] @ neighbor[i].unsqueeze(-1)).squeeze(-1) for i in range(x.size(0))]
+        
+        x, neighbor_app = self.actv(x), [self.actv(n) for n in neighbor_app]
+        
+        adj = self.feature_adjacency(x, neighbor_app)
+        x = self.APP(x, adj, h)
+        #neighbor = [self.APP(neighbor_app[i], adj[i:i+1], neighbor[i]) for i in range(x.size(0))] ## TODO remove this?
+        neighbor = [(adj[i:i+1] @ neighbor[i].unsqueeze(-1)).squeeze(-1) for i in range(x.size(0))]
+        return x, neighbor
     
+    def APP(self,x, adj, h):
+        return (1-self.alpha) * (adj @ x.unsqueeze(-1)).squeeze(-1) + self.alpha * h
+    
+    def trans(self, x):
+        return self.conv(x.view(x.size(0), self.in_channels, self.in_features)).view(x.size(0), self.out_channels, self.out_features)
+
+    def feature_adjacency(self, x, y):
+        B, C, F = x.shape
+        w = [self.norm(torch.einsum('ci,nkl->n', self.att1(x[i]), self.att2(y[i]))) for i in range(B)]
+        fadj = torch.stack([torch.einsum("ca, ncb, n -> cab", x[i], y[i], w[i]) for i in range(B)])
+        fadj += fadj.transpose(-2, -1)
+        return self.row_normalize(self.sgnroot(fadj))
+
+    def sgnroot(self, x):
+        return x.sign()*(x.abs().clamp(min=1e-8).sqrt())
+
+    def row_normalize(self, x):
+        ## TODO row dimension to -1 or -2
+        x = x / (x.abs().sum(-2, keepdim=True) + 1e-7)
+        x[torch.isnan(x)] = 0
+        return x
+    
+    
+    
+class AttnFeatTransAPPNP(nn.Module):
+    '''
+    Feature Transforming Layer for K-hop caten 1D features.
+    Input size should be (n_batch, in_channels, in_features)
+    Output size is (n_batch, out_channels, out_features)
+    This will encode the k-hop into the channel of the nodex
+    Args:
+        in_channels (int): number of feature input channels
+        k-hop (int): number of the k level.
+        out_channels (int): number of feature output channels
+        in_features (int): dimension of input features
+        out_features (int): dimension of output features
+    '''
+    def __init__(self, in_channels, khop, in_features, out_channels, out_features, alpha=0.1):
+        super(AttnFeatTransAPPNP, self).__init__()
+        self.khop = khop
+        self.alpha = alpha
+        self.actv = nn.Sequential(nn.BatchNorm1d(out_channels), nn.Softsign())
+        self.out_channels, self.out_features = out_channels, out_features
+        self.in_channels, self.in_features = in_channels, in_features
+        # Taking advantage of parallel efficiency of nn.Conv1d
+        self.conv = nn.Conv1d(self.in_channels, out_channels*out_features, kernel_size = self.in_features, bias=False)
+        self.att1 = nn.Linear(out_features, out_channels, bias=False)
+        self.att2 = nn.Linear(out_features, out_channels, bias=False)
+        self.norm = nn.Sequential(nn.Softmax(dim=0))
+
+    def forward(self, x, neighbor):
+
+        h = self.trans(x)
+        neighbor = [self.trans(n) for n in neighbor]
+        
+        adj = self.feature_adjacency(h, neighbor)
+        x = self.APP(h, adj, h)
+        neighbor_app = [self.APP(neighbor[i], adj[i:i+1], neighbor[i]) for i in range(x.size(0))]
+        
+        x, neighbor_app = self.actv(x), [self.actv(n) for n in neighbor_app]
+        
+        adj = self.feature_adjacency(x, neighbor_app)
+        x = self.APP(x, adj, h)
+        neighbor = [self.APP(neighbor_app[i], adj[i:i+1], neighbor[i]) for i in range(x.size(0))] 
+        return x, neighbor
+    
+    def APP(self,x, adj, h):
+        return (1-self.alpha) * (adj @ x.unsqueeze(-1)).squeeze(-1) + self.alpha * h
+    
+    def trans(self, x):
+        return self.conv(x.view(x.size(0), self.in_channels, self.in_features)).view(x.size(0), self.out_channels, self.out_features)
+
+    def feature_adjacency(self, x, y):
+        B, C, F = x.shape
+        w = [self.norm(torch.einsum('ci,nkl->n', self.att1(x[i]), self.att2(y[i]))) for i in range(B)]
+        fadj = torch.stack([torch.einsum("ca, ncb, n -> cab", x[i], y[i], w[i]) for i in range(B)])
+        fadj += fadj.transpose(-2, -1)
+        return self.row_normalize(self.sgnroot(fadj))
+
+    def sgnroot(self, x):
+        return x.sign()*(x.abs().clamp(min=1e-8).sqrt())
+
+    def row_normalize(self, x):
+        ## TODO row dimension to -1 or -2
+        x = x / (x.abs().sum(-2, keepdim=True) + 1e-7)
+        x[torch.isnan(x)] = 0
+        return x
