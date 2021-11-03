@@ -1,0 +1,14 @@
+dataset=ogbn-arxiv
+model=attnKTransCat
+device=cuda:0
+seed=1
+
+batch=16
+opt=SGD
+lr=0.01
+k=1
+
+hidden =[128, 128]
+drop = [0.3, 0.1]
+
+# save='loads/KTransCat_class_ogbn-arxiv_SGD_M4096_J5_1_B16.model', seed=1) number of prarams 70960

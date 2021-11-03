@@ -1,0 +1,18 @@
+#### The config file for lifelong class incremental learning with FGN.
+#### For cora pubmed and citeseer we use the featBrd layer
+#### For citeseer we need a smaller batch size due due to the GPU memory
+
+dataset=citeseer
+model=attnplain
+device=cuda:0
+seed=1
+
+sample=10
+jump=1
+memory=500
+batch=6
+opt=SGD
+merge=1
+
+hidden=[10, 10]
+drop=[0.2, 0.2]
