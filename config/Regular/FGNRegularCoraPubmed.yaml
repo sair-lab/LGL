@@ -1,0 +1,11 @@
+dataset=cora # pubmed
+model=attnplain
+device=cuda:0
+seed=1
+
+batch=10
+opt=SGD
+lr=0.01
+
+hidden =[10, 10]
+drop = [0.3, 0.1]

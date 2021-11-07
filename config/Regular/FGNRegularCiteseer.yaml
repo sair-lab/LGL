@@ -1,0 +1,13 @@
+dataset=citeseer
+model=attnplain
+device=cuda:0
+seed=1
+
+batch=6
+opt=SGD
+lr=0.01
+
+hidden =[10, 10]
+drop = [0.3, 0.1]
+
+# save='loads/KTransCat_class_ogbn-arxiv_SGD_M4096_J5_1_B16.model', seed=1) number of prarams 70960
