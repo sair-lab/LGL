@@ -1,0 +1,11 @@
+dataset=cora #pubmed
+model=GAT #MLP APPNP SAGE GCN
+device=cuda:0
+seed=1
+
+batch=10
+opt=SGD
+lr=0.01
+
+hidden =[64, 32]
+drop = [0, 0]

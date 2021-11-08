@@ -1,0 +1,11 @@
+dataset=ogbn-arxiv
+model=GAT #MLP APPNP SAGE GCN
+device=cuda:0
+seed=1
+
+batch=16
+opt=SGD
+lr=0.01
+
+hidden =[128, 128]
+drop = [0, 0]

@@ -1,0 +1,18 @@
+dataset=ogbn-arxiv
+model=GAT #MLP SAGE APPNP GCN
+device=cuda:0
+seed=1
+
+sample=100
+jump=5
+memory=4096
+batch=16
+opt=SGD
+merge=5
+lr=0.01
+iteration=3
+
+hidden =[128, 128]
+drop = [0, 0]
+
+# save='loads/KTransCat_class_ogbn-arxiv_SGD_M4096_J5_1_B16.model', seed=1) number of prarams 70960

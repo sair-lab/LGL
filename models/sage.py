@@ -11,17 +11,18 @@ class SAGE(nn.Module):
     GraphSAGE: Inductive Representation Learning on Large Graphs, NIPS 2017
     https://arxiv.org/pdf/1706.02216.pdf
     '''
-    def __init__(self, feat_len, num_class, hidden=128, aggr='gcn'):
+    def __init__(self, feat_len, num_class, hidden=[128,128], dropout=[0,0], aggr='gcn', k=1):
         super().__init__()
         aggrs = {'pool':PoolAggregator, 'mean':MeanAggregator, 'gcn':GCNAggregator}
         Aggregator = aggrs[aggr]
-        self.tran1 = Aggregator(feat_len, hidden)
+        self.tran1 = Aggregator(feat_len, hidden[0])
         self.acvt1 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
-        self.tran2 = Aggregator(hidden, hidden)
+        self.tran2 = Aggregator(hidden[0], hidden[1])
         self.acvt2 = nn.Sequential(nn.BatchNorm1d(1), nn.ReLU())
-        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(hidden, num_class))
+        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(hidden[1], num_class))
 
     def forward(self, x, neighbor):
+        ## the neighbor should be (N,n,c,f)
         x, neighbor = self.tran1(x, neighbor)
         x, neighbor = self.acvt1(x), [self.acvt1(n) for n in neighbor]
         x, neighbor = self.tran2(x, neighbor)
@@ -66,7 +67,7 @@ class PoolAggregator(nn.Module):
 
 
 class LifelongSAGE(SAGE):
-    def __init__(self, args, feat_len, num_class):
+    def __init__(self, args, feat_len, num_class, k=1):
         super().__init__(feat_len, num_class)
         self.args = args
         self.register_buffer('adj', torch.zeros(1, feat_len, feat_len))

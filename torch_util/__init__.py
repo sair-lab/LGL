@@ -1,3 +1,3 @@
 
-from .tools import count_parameters, Timer
+from .tools import count_parameters, Timer, performance, accuracy
 from .scheduler import EarlyStopScheduler
