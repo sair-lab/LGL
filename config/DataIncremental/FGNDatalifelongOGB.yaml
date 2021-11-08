@@ -3,9 +3,13 @@ model=KTransCat
 device=cuda:0
 seed=1
 
+sample=100
+jump=1
+memory=512
 batch=16
 opt=SGD
 lr=0.01
+iteration=5
 k=1
 
 hidden =[128, 128]
