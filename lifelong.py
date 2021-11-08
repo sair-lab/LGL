@@ -40,55 +40,13 @@ import torch.utils.data as Data
 from models import SAGE, GCN, MLP, GAT, APP, APPNP
 from models import LGL, AFGN, PlainNet, AttnPlainNet, KTransCAT, AttnKTransCAT
 from models import LifelongRehearsal
-from datasets import continuum
-from datasets import graph_collate
-from torch_util import count_parameters, Timer
+from datasets import continuum, graph_collate
+from torch_util import count_parameters, Timer, accuracy
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
 
 nets = {'sage':SAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktranscat':AttnKTransCAT, 'gcn':GCN, 'appnp':APPNP, 'app':APP, 'mlp':MLP, 'gat':GAT, 'plain':PlainNet, 'attnplain':AttnPlainNet}
-
-def performance(loader, net, device, k):
-    net.eval()
-    correct, total = 0, 0
-    with torch.no_grad():
-        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(loader)):
-            if torch.cuda.is_available():
-
-                inputs, targets = inputs.to(device), targets.to(device)
-                if not k:
-                    neighbor = [element.to(device) for element in neighbor]
-                else:
-                    neighbor = [[item.to(device) for item in element] for element in neighbor]
-            outputs = net(inputs, neighbor)
-            _, predicted = torch.max(outputs.data, 1)
-            total += targets.size(0)
-            correct += predicted.eq(targets.data).cpu().sum().item()
-        acc = correct/total
-    return acc
-
-
-def accuracy(net, loader, device, num_class):
-    net.eval()
-    correct, total = 0, 0
-    classes = torch.arange(num_class).view(-1,1).to(device)
-    with torch.no_grad():
-        for idx, (inputs, targets, neighbor) in enumerate(loader):
-            if torch.cuda.is_available():
-                inputs, targets = inputs.to(device), targets.to(device)
-                if not k:
-                    neighbor = [element.to(device) for element in neighbor]
-                else:
-                    neighbor = [[item.to(device) for item in element] for element in neighbor]
-            outputs = net(inputs, neighbor)
-            _, predicted = torch.max(outputs.data, 1)
-            total += (targets == classes).sum(1)
-            corrected = predicted==targets
-            correct += torch.stack([corrected[targets==i].sum() for i in range(num_class)])
-        acc = correct/total
-    return acc
-
 
 if __name__ == "__main__":
 
@@ -119,6 +77,9 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     torch.manual_seed(args.seed)
 
+    train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop = args.k)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
+
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True ,k_hop = args.k)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
 
@@ -135,8 +96,6 @@ if __name__ == "__main__":
     print('number of parameters:', num_parameters)
 
     if args.load is not None:
-        train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop = args.k)
-        train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
         net.backbone.load_state_dict(torch.load(args.load, map_location=args.device))
         train_acc, test_acc, valid_acc = performance(train_loader, net, args.device, k=args.k),  performance(test_loader, net, args.device, k=args.k), performance(valid_loader, net, args.device, k=args.k)
         print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))

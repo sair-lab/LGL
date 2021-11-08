@@ -39,7 +39,6 @@ from torch.autograd import Variable
 from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LGL, AFGN, PlainNet, AttnPlainNet
 from models import KTransCAT, AttnKTransCAT, AttnAPPTrans, AttnAPPNPTrans
-from lifelong import performance
 from datasets import continuum, graph_collate
 from torch_util import count_parameters, EarlyStopScheduler, performance
 import time 

@@ -31,19 +31,18 @@ import tqdm
 import copy
 import torch
 import warnings
-import argparse
+import configargparse
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 
 from datasets import continuum
-from lifelong import performance
 from datasets import graph_collate
 from models import LGL, AFGN, PlainNet, AttnPlainNet
 from models import KTransCAT, AttnKTransCAT
 from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LifelongRehearsal
-from torch_util import count_parameters
+from torch_util import count_parameters, performance
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
@@ -55,7 +54,8 @@ nets = {'sage':SAGE, 'lgl': LGL, 'afgn': AFGN, 'ktranscat':KTransCAT, 'attnktran
 
 if __name__ == "__main__":
     # Arguements
-    parser = argparse.ArgumentParser(description='Feature Graph Networks')
+    parser = configargparse.ArgumentParser()
+    parser.add_argument('-c', '--config', is_config_file=True, help='config file path')
     parser.add_argument("--device", type=str, default='cuda:0', help="cuda or cpu")
     parser.add_argument("--data-root", type=str, default='/data/datasets', help="dataset location")
     parser.add_argument("--dataset", type=str, default='cora', help="cora, citeseer, or pubmed")
@@ -80,38 +80,44 @@ if __name__ == "__main__":
 
     train_data = continuum(root=args.data_root, name=args.dataset, data_type='train', download=True, k_hop=args.k)
     train_loader = Data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
+
     test_data = continuum(root=args.data_root, name=args.dataset, data_type='test', download=True, k_hop=args.k)
     test_loader = Data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
-    ## for cora pubmed and citeseer this will be the same with test
+
     valid_data = continuum(root=args.data_root, name=args.dataset, data_type='valid', download=True, k_hop=args.k)
     valid_loader = Data.DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False, collate_fn=graph_collate, drop_last=True)
+
+    Net = nets[args.model.lower()]
+    if args.model.lower() in ['ktranscat', 'attnktranscat']:
+        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop)
+    else:
+        net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop)
 
     if args.eval:
         with open(args.eval+'-acc.txt','a') as file:
             file.write(str(args)+"\n")
 
+    num_parameters = count_parameters(net)
+    print('number of parameters:', num_parameters)
+
     if args.load is not None:
-        net = torch.load(args.load, map_location=args.device)
-    else:
-        Net = nets[args.model.lower()]
-        if args.model.lower() in ['ktranscat', 'attnktranscat']:
-            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, k = args.k, hidden = args.hidden, drop = args.drop)
-        else:
-            net = LifelongRehearsal(args, Net, feat_len=test_data.feat_len, num_class=test_data.num_class, hidden = args.hidden, drop = args.drop)
+        net.backbone.load_state_dict(torch.load(args.load, map_location=args.device))
+        train_acc, test_acc, valid_acc = performance(train_loader, net, args.device, k=args.k),  performance(test_loader, net, args.device, k=args.k), performance(valid_loader, net, args.device, k=args.k)
+        print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))
+        exit()
+        
+    for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
+        net.observe(inputs, targets, neighbor, batch_idx%args.jump==0)
 
-        print(net)
-        for batch_idx, (inputs, targets, neighbor) in enumerate(tqdm.tqdm(train_loader)):
-            net.observe(inputs, targets, neighbor, batch_idx%args.jump==0)
+        if args.eval and batch_idx%args.sample_rate*10 == args.sample_rate*10-1:
+            running_loss = net.running_loss/((batch_idx+1))
+            test_acc = performance(test_loader, net, args.device, k=args.k)
+            with open(args.eval+'-acc.txt','a') as file:
+                file.write((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
+                print((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
 
-            if args.eval and batch_idx%args.sample_rate*10 == args.sample_rate*10-1:
-                running_loss = net.running_loss/((batch_idx+1))
-                test_acc = performance(test_loader, net, args.device, k=args.k)
-                with open(args.eval+'-acc.txt','a') as file:
-                    file.write((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
-                    print((str([batch_idx*args.batch_size, test_acc, running_loss])+'\n').replace('[','').replace(']',''))
-
-        if args.save is not None:
-            torch.save(net, args.save)
+    if args.save is not None:
+        torch.save(net, args.save)
 
     test_acc, train_acc, valid_acc = performance(test_loader, net, args.device, k=args.k), performance(train_loader, net, args.device, k=args.k), performance(valid_loader, net, args.device, k=args.k)
     print("Train Acc: %.3f, Test Acc: %.3f, Valid Acc: %.3f"%(train_acc, test_acc, valid_acc))

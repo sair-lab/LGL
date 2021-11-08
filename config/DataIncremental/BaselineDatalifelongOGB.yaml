@@ -1,0 +1,15 @@
+dataset=ogbn-arxiv
+model=GAT
+device=cuda:0
+seed=1
+
+sample=100
+jump=1
+memory=512
+batch=16
+opt=SGD
+lr=0.01
+iteration=5
+
+hidden =[128, 128]
+drop = [0, 0]
