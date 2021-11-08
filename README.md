@@ -1,11 +1,16 @@
 # LGL
 Lifelong Graph Learning
 
+[Chen Wang](https://chenwang.site), [Yuheng Qiu](http://theairlab.org/team/yuheng/) [Dasong Gao](http://theairlab.org/team/dasongg/),  [Sebastian Scherer](http://theairlab.org/team/sebastian/). "[Lifelong Graph Learning](https://arxiv.org/pdf/2009.00647.pdf)." *arXiv preprint arXiv:2009.00647 (2021)*.
+
 # Dependencies
 
 * Python 3
 * [PyTorch v1.5+](https://pytorch.org/get-started)
 * [DGL v0.4](https://www.dgl.ai/pages/start.html) (Only used for downloading graph datasets)
+
+        conda install dgl=0.4
+
 * [Open Graph Benchmark](https://ogb.stanford.edu/)
 
 ---     
@@ -79,3 +84,13 @@ Lifelong Graph Learning
         --hidden HIDDEN [HIDDEN ...]
         --drop DROP [DROP ...]
         --merge MERGE         Merge some class if needed.
+        
+ 
+# Citation
+
+    @article{wang2020lifelong,
+      title={Lifelong graph learning},
+      author={Wang, Chen and Qiu, Yuheng and Gao, Dasong and Scherer, Sebastian},
+      journal={arXiv preprint arXiv:2009.00647},
+      year={2020}
+    }
