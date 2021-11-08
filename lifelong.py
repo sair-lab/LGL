@@ -41,7 +41,7 @@ from models import SAGE, GCN, MLP, GAT, APP, APPNP
 from models import LGL, AFGN, PlainNet, AttnPlainNet, KTransCAT, AttnKTransCAT
 from models import LifelongRehearsal
 from datasets import continuum, graph_collate
-from torch_util import count_parameters, Timer, accuracy
+from torch_util import count_parameters, Timer, accuracy, performance
 
 sys.path.append('models')
 warnings.filterwarnings("ignore")
