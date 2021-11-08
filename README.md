@@ -31,8 +31,7 @@ Lifelong Graph Learning
 
 * Data-incremental Tasks
 
-        python lifelong_data.py --data-root [data_location] --config config/ --config config/
-        DataIncremental/FGNDatalifelongCoraPubmed.yaml --save [model_file_location]
+        python lifelong_data.py --data-root [data_location] --config config/ --config config/DataIncremental/FGNDatalifelongCoraPubmed.yaml --save [model_file_location]
 
 
 ## Testing
@@ -44,7 +43,8 @@ Lifelong Graph Learning
         python train.py --data-root [data_location] --config config/Regular/FGNRegularOGB.yaml --load pretrained_model/Regular/nonlifelongFGNKTransCat_ogbn-arxiv.pt
         
 
-## Some API for usage 
+## Some API for usage
+
         usage: lifelong.py [-h] [-c CONFIG] [--device DEVICE] [--data-root DATA_ROOT] [--dataset DATASET] [--model MODEL] [--load LOAD]
                         [--save SAVE] [--optm OPTM] [--lr LR] [--batch-size BATCH_SIZE] [--jump JUMP] [--iteration ITERATION]
                         [--memory-size MEMORY_SIZE] [--seed SEED] [-p] [--eval EVAL] [--sample-rate SAMPLE_RATE] [--k K]
