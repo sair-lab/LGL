@@ -1,7 +1,7 @@
 # LGL
 Lifelong Graph Learning
 
-[Chen Wang](https://chenwang.site), [Yuheng Qiu](http://theairlab.org/team/yuheng/) [Dasong Gao](http://theairlab.org/team/dasongg/),  [Sebastian Scherer](http://theairlab.org/team/sebastian/). "[Lifelong Graph Learning](https://arxiv.org/pdf/2009.00647.pdf)." *arXiv preprint arXiv:2009.00647 (2021)*.
+[Chen Wang](https://chenwang.site), [Yuheng Qiu](http://theairlab.org/team/yuheng/), [Dasong Gao](http://theairlab.org/team/dasongg/),  [Sebastian Scherer](http://theairlab.org/team/sebastian/). "[Lifelong Graph Learning](https://arxiv.org/pdf/2009.00647.pdf)." *arXiv preprint arXiv:2009.00647 (2021)*.
 
 # Dependencies
 
