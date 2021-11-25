@@ -47,8 +47,7 @@ Please go to [Human Action Recognition](https://github.com/wang-chen/lgl-action-
 
 ## Testing
 
-* download pretrained model from 
-        https://github.com/wang-chen/LGL/releases/tag/pretrained. 
+* Download [pretrained models](https://github.com/wang-chen/LGL/releases/tag/pretrained). 
         Change the path of the pretrained model under `--load`, and change the `--config`.
 
         python train.py --data-root [data_location] --config config/Regular/FGNRegularOGB.yaml --load pretrained_model/Regular/nonlifelongFGNKTransCat_ogbn-arxiv.pt
