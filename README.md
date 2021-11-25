@@ -3,6 +3,12 @@ Lifelong Graph Learning
 
 [Chen Wang](https://chenwang.site), [Yuheng Qiu](http://theairlab.org/team/yuheng/), [Dasong Gao](http://theairlab.org/team/dasongg/),  [Sebastian Scherer](http://theairlab.org/team/sebastian/). "[Lifelong Graph Learning](https://arxiv.org/pdf/2009.00647.pdf)." *arXiv preprint arXiv:2009.00647 (2021)*.
 
+# Note 
+
+This repo only contains source code for citation graphs.
+
+Please go to [Human Action Recognition](https://github.com/wang-chen/lgl-action-recognition) and [Feature Matching](https://github.com/wang-chen/lgl-feature-matching) for other experiments.
+
 # Dependencies
 
 * Python 3
@@ -88,9 +94,9 @@ Lifelong Graph Learning
  
 # Citation
 
-    @article{wang2020lifelong,
+    @article{wang2021lifelong,
       title={Lifelong graph learning},
       author={Wang, Chen and Qiu, Yuheng and Gao, Dasong and Scherer, Sebastian},
       journal={arXiv preprint arXiv:2009.00647},
-      year={2020}
+      year={2021}
     }
