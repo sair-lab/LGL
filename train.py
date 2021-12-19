@@ -38,7 +38,7 @@ from torch.autograd import Variable
 
 from models import SAGE, GCN, APPNP, MLP, GAT, APP
 from models import LGL, AFGN, PlainNet, AttnPlainNet
-from models import KTransCAT, AttnKTransCAT, AttnAPPTrans, AttnAPPNPTrans
+from models import KTransCAT, AttnKTransCAT
 from datasets import continuum, graph_collate
 from torch_util import count_parameters, EarlyStopScheduler, performance
 import time 
@@ -157,7 +157,7 @@ if __name__ == '__main__':
             print('Early Stopping!')
             break
 
-    train_acc, test_acc, valid_acc = performance(train_loader, best_net, args.device, args.device, args.k), performance(test_loader, best_net, args.device, args.k), performance(valid_loader, best_net, args.device, args.k)
+    train_acc, test_acc, valid_acc = performance(train_loader, best_net, args.device, args.k), performance(test_loader, best_net, args.device, args.k), performance(valid_loader, best_net, args.device, args.k)
     print('train_acc: %.4f, test_acc: %.4f, valid_acc: %.4f'%(train_acc, test_acc, valid_acc))
 
     if args.eval:
