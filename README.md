@@ -1,7 +1,7 @@
 # LGL
 Lifelong Graph Learning
 
-[Chen Wang](https://chenwang.site), [Yuheng Qiu](http://theairlab.org/team/yuheng/), [Dasong Gao](http://theairlab.org/team/dasongg/),  [Sebastian Scherer](http://theairlab.org/team/sebastian/). "[Lifelong Graph Learning](https://arxiv.org/pdf/2009.00647.pdf)." *arXiv preprint arXiv:2009.00647 (2021)*.
+[Chen Wang](https://chenwang.site), [Yuheng Qiu](http://theairlab.org/team/yuheng/), [Dasong Gao](http://theairlab.org/team/dasongg/),  [Sebastian Scherer](http://theairlab.org/team/sebastian/). "[Lifelong Graph Learning](https://arxiv.org/pdf/2009.00647.pdf)." Conference on Computer Vision and Pattern Recognition (CVPR), 2022.
 
 # Note 
 
@@ -93,9 +93,9 @@ Please go to [Human Action Recognition](https://github.com/wang-chen/lgl-action-
  
 # Citation
 
-    @article{wang2021lifelong,
-      title={Lifelong graph learning},
-      author={Wang, Chen and Qiu, Yuheng and Gao, Dasong and Scherer, Sebastian},
-      journal={arXiv preprint arXiv:2009.00647},
-      year={2021}
-    }
+        @inproceedings{wang2022lifelong,
+          title={Lifelong graph learning},
+          author={Wang, Chen and Qiu, Yuheng and Gao, Dasong and Scherer, Sebastian},
+          booktitle={2022 Conference on Computer Vision and Pattern Recognition (CVPR)},
+          year={2022}
+        }
